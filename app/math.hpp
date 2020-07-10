@@ -1,6 +1,8 @@
 #ifndef MATH_HPP
 #define MATH_HPP
 
+#include <cstddef>
+
 namespace demo::math
 {
 
@@ -23,6 +25,12 @@ struct Vec3
     Vec3 operator-(const Vec3& rhs) const;
     Vec3 operator+=(const Vec3& rhs);
     Vec3 operator-=(const Vec3& rhs);
+
+    // square magnitude
+    float sq_mag();
+
+    // magnitude
+    float mag();
 };
 
 float dot(const Vec3& v1, const Vec3& v2);
@@ -37,12 +45,16 @@ struct Mat3
          float m20, float m21, float m22);
 
     static Mat3 Identity();
+    static Mat3 Zero();
 
     static Mat3 FromColumns(const Vec3& c0, const Vec3& c1, const Vec3& c2);
 
     static Mat3 RotateX(float angle);
     static Mat3 RotateY(float angle);
     static Mat3 RotateZ(float angle);
+
+    float* operator[](std::size_t index);
+    const float* operator[](std::size_t index) const;
 
     Vec3 row(unsigned int n) const;
     Vec3 col(unsigned int n) const;

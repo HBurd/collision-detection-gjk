@@ -44,6 +44,16 @@ Vec3 Vec3::operator-=(const Vec3& rhs)
     return *this;
 }
 
+float Vec3::sq_mag()
+{
+    return x*x + y*y + z*z;
+}
+
+float Vec3::mag()
+{
+    return sqrtf(sq_mag());
+}
+
 float dot(const Vec3& v1, const Vec3& v2)
 {
     return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
@@ -65,6 +75,13 @@ Mat3 Mat3::Identity()
     return Mat3(1.0f, 0.0f, 0.0f,
                 0.0f, 1.0f, 0.0f,
                 0.0f, 0.0f, 1.0f);
+}
+
+Mat3 Mat3::Zero()
+{
+    return Mat3(0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f);
 }
 
 Mat3 Mat3::FromColumns(const Vec3& c0, const Vec3& c1, const Vec3& c2)
@@ -104,6 +121,16 @@ Mat3 Mat3::RotateZ(float angle)
     return Mat3(cos_a, -sin_a, 0.0f,
                 sin_a, cos_a,  0.0f,
                 0.0f,  0.0f,   1.0f);
+}
+
+float* Mat3::operator[](std::size_t index)
+{
+    return m[index];
+}
+
+const float* Mat3::operator[](std::size_t index) const
+{
+    return m[index];
 }
 
 Vec3 Mat3::row(unsigned int n) const
