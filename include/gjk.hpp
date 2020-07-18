@@ -10,25 +10,43 @@ namespace geometry
     template <class Vec3, class Data>
     using SupportFn = Vec3 (*) (Vec3 dir, const Data& data);
 
-    template<class Vec3>
-    decltype(Vec3::x) dot(const Vec3& v1, const Vec3& v2)
+    template <class Vec3>
+    decltype(Vec3::x) dot(const Vec3& l, const Vec3& r)
     {
-        return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
+        return l.x*r.x + l.y*r.y + l.z*r.z;
+    }
+
+    template <class Vec3>
+    Vec3 cross(const Vec3& l, const Vec3& r)
+    {
+        return Vec3(
+            l.y*r.z - l.z*r.y,
+            l.z*r.x - l.x*r.z,
+            l.x*r.y - l.y*r.x
+        );
     }
 
     template <class Vec3>
     void simplex1_dir(Vec3* simplex, Vec3& d)
     {
-
+        // The simplex is a single point
+        d = -*simplex;
     }
 
     template <class Vec3>
     void simplex2_dir(Vec3* simplex, Vec3& d)
     {
+        // The simplex is 2 points.
+        // The way this is called, the closest point to the simplex can only
+        // be on the line. So d will be normal t the line.
 
+        // This function returns the vector on the plane containing the simplex and the origin,
+        // in the direction pointing "closest" to the origin while being normal to the simplex.
+        // There are 2 directions normal to the simplex in this plane
+
+        d = cross(simplex[1] - simplex[0], cross(simplex[1] - simplex[0], simplex[0]));
     }
 
-    // TODO: can this return bool so this can be used in 2D also?
     template <class Vec3>
     void simplex3_dir(Vec3* simplex, Vec3& d)
     {
@@ -57,7 +75,7 @@ namespace geometry
         do
         {
             Vec3 point = support1(d, data1) - support2(-d, data2);
-            if (dot(point, d) < 0)
+            if (dot(point, d) < Real(0))
             {
                 // Furthest point along d is not past the origin, so there is no intersection
                 return false;

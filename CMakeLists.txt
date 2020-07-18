@@ -19,6 +19,7 @@ endif()
 
 add_executable(demo app/demo.cpp app/math.cpp)
 add_executable(test_math app/test_math.cpp app/math.cpp)
+add_executable(test_gjk app/test_gjk.cpp app/math.cpp)
 
 if(ENABLE_COVERAGE)
     setup_target_for_coverage_lcov(
@@ -28,4 +29,12 @@ if(ENABLE_COVERAGE)
         LCOV_ARGS -rc lcov_branch_coverage=1
         GENHTML_ARGS --branch-coverage
         DEPENDENCIES test_math)
+
+    setup_target_for_coverage_lcov(
+        NAME gjk_coverage
+        EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/gjk_math
+        EXECUTABLE_ARGS ""
+        LCOV_ARGS -rc lcov_branch_coverage=1
+        GENHTML_ARGS --branch-coverage
+        DEPENDENCIES gjk_math)
 endif()
