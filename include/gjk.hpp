@@ -50,7 +50,71 @@ namespace geometry
     template <class Vec3>
     void simplex3_dir(Vec3* simplex, Vec3& d)
     {
+        /*  The simplex is 3 points, a triangle
 
+              A         .
+                    .
+          . . . .
+               |\
+               | \      F
+           B   |  \
+               |G/H\          .
+               |    \     .
+          . . .|_____\.
+               .     .
+           C   .  D  .    E
+               .     .
+
+            The vertices by areas A, C and E are the first, second and third vertices
+            added to the simplex respectively (and call them a, b and c). The way the
+            GJK algorithm works imposes constraints on where the origin can be relative
+            to these vertices. This allows several cases to be eliminated in this function.
+            In particular, the only regions which can contain the origin are D, F, G and H.
+        */
+
+        using Real = decltype(Vec3::x);
+
+        // Looking down at counter-clockwise triangle, this is pointing up
+        Vec3 triangle_normal = cross(simplex[1] - simplex[0], simplex[2] - simplex[0]);
+
+        Real f_plane(dot(cross(triangle_normal, simplex[2] - simplex[0]), simplex[0]));
+        Real d_plane(dot(cross(triangle_normal, simplex[1] - simplex[2]), simplex[2]));
+
+        // TODO: decide on < vs <=
+
+        if (f_plane * d_plane < Real(0))
+        {
+            // Origin is in region D or F
+
+            if (f_plane < Real(0))
+            {
+                // Origin is in region F
+                // We can discard simplex[1]
+                simplex[1] = simplex[2];
+                simplex2_dir(simplex, d);
+            }
+            else
+            {
+                // Origin is in region D
+                // We can discard simplex[0]
+                simplex[0] = simplex[2];
+                simplex2_dir(simplex, d);
+            }
+        }
+        else
+        {
+            // Origin is in region G or H
+            if (dot(triangle_normal, simplex[0]) < Real(0))
+            {
+                // Origin is above the triangle
+                d = triangle_normal;
+            }
+            else
+            {
+                // Origin is below triangle
+                d = -triangle_normal;
+            }
+        }
     }
 
     template <class Vec3>
