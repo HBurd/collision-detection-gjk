@@ -200,6 +200,40 @@ int main()
                 {
                     cube.position += Vec3::X(last_frame_time * speed);
                 }
+                if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+                {
+                    cube.position += Vec3::Y(-last_frame_time * speed);
+                }
+                if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+                {
+                    cube.position += Vec3::Y(last_frame_time * speed);
+                }
+
+                float angular_speed = 1.0f; // radians per second
+                if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+                {
+                    cube.orientation = Mat3::RotateX(-angular_speed * last_frame_time) * cube.orientation;
+                }
+                if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+                {
+                    cube.orientation = Mat3::RotateX(angular_speed * last_frame_time) * cube.orientation;
+                }
+                if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+                {
+                    cube.orientation = Mat3::RotateY(-angular_speed * last_frame_time) * cube.orientation;
+                }
+                if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+                {
+                    cube.orientation = Mat3::RotateY(angular_speed * last_frame_time) * cube.orientation;
+                }
+                if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+                {
+                    cube.orientation = Mat3::RotateZ(angular_speed * last_frame_time) * cube.orientation;
+                }
+                if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+                {
+                    cube.orientation = Mat3::RotateZ(-angular_speed * last_frame_time) * cube.orientation;
+                }
             }
         }
 
