@@ -17,7 +17,7 @@ if(ENABLE_COVERAGE)
     append_coverage_compiler_flags()
 endif()
 
-add_executable(demo app/demo.cpp app/math.cpp)
+add_executable(demo app/demo.cpp app/math.cpp app/rendering.cpp)
 add_executable(test_math app/test_math.cpp app/math.cpp)
 add_executable(test_gjk app/test_gjk.cpp app/math.cpp)
 
