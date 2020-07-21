@@ -21,11 +21,13 @@ add_executable(demo app/demo.cpp app/math.cpp)
 add_executable(test_math app/test_math.cpp app/math.cpp)
 add_executable(test_gjk app/test_gjk.cpp app/math.cpp)
 
-# Link with GLFW, OpenGL
+# Link with GLFW, OpenGL, GLEW
 find_package(glfw3 3.3 REQUIRED)
 target_link_libraries(demo glfw)
 find_package(OpenGL REQUIRED)
 target_link_libraries(demo OpenGL::GL)
+find_package(GLEW REQUIRED)
+target_link_libraries(demo ${GLEW_LIBRARIES})
 
 if(ENABLE_COVERAGE)
     setup_target_for_coverage_lcov(
