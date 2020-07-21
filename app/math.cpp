@@ -54,6 +54,31 @@ float Vec3::mag()
     return sqrtf(sq_mag());
 }
 
+Vec3 Vec3::X(float x)
+{
+    return Vec3(x, 0.0f, 0.0f);
+}
+
+Vec3 Vec3::Y(float y)
+{
+    return Vec3(0.0f, y, 0.0f);
+}
+
+Vec3 Vec3::Z(float z)
+{
+    return Vec3(0.0f, 0.0f, z);
+}
+
+Vec3 operator*(float lhs, const Vec3& rhs)
+{
+    return Vec3(lhs*rhs.x, lhs*rhs.y, lhs*rhs.z);
+}
+
+Vec3 operator*(const Vec3& lhs, float rhs)
+{
+    return rhs * lhs;
+}
+
 float dot(const Vec3& v1, const Vec3& v2)
 {
     return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;

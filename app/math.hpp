@@ -31,7 +31,15 @@ struct Vec3
 
     // magnitude
     float mag();
+
+    static Vec3 X(float x);
+    static Vec3 Y(float y);
+    static Vec3 Z(float z);
 };
+
+// Scalar multiples
+Vec3 operator*(float lhs, const Vec3& rhs);
+Vec3 operator*(const Vec3& lhs, float rhs);
 
 float dot(const Vec3& v1, const Vec3& v2);
 
