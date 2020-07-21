@@ -111,7 +111,7 @@ int main()
         cube_vertices[7], cube_vertices[3], cube_vertices[2],
 
         cube_vertices[3], cube_vertices[7], cube_vertices[5],    // back face
-        cube_vertices[5], cube_vertices[2], cube_vertices[3],
+        cube_vertices[5], cube_vertices[1], cube_vertices[3],
 
         cube_vertices[0], cube_vertices[2], cube_vertices[1],    // right face
         cube_vertices[2], cube_vertices[3], cube_vertices[1],
