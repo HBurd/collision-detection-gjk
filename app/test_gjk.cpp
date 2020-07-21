@@ -52,6 +52,8 @@ void test_simplex2_dir()
 
 void test_simplex3_dir()
 {
+    std::size_t simplex_size = 3;
+
     Vec3 simplex1[3] = {
         Vec3(-1.0f, 0.0f, -1.0f),
         Vec3(1.0f, -1.0f, -1.0f),
@@ -60,7 +62,8 @@ void test_simplex3_dir()
     Vec3 expected1(0.0f, 0.0f, 1.0f);
     Vec3 d;
 
-    geometry::simplex3_dir(simplex1, d);
+    geometry::simplex3_dir(simplex1, simplex_size, d);
+    assert(simplex_size == 3);
 
     assert_equal(dot(d, expected1), d.mag()*expected1.mag());
 
@@ -71,7 +74,8 @@ void test_simplex3_dir()
     };
     Vec3 expected2(-0.5f, -0.5f, 1.0f);
 
-    geometry::simplex3_dir(simplex2, d);
+    geometry::simplex3_dir(simplex2, simplex_size, d);
+    //assert(simplex_size == 2);
 
     assert(dot(d, expected2) - d.mag()*expected2.mag() < 0.0001f);
 }

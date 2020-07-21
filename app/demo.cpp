@@ -286,6 +286,29 @@ int main()
             }
         }
 
+        if (cubes.size())
+        {
+            cubes[selected_cube].colliding = false;
+        }
+
+        // Check for collisions with the selected cube
+        for (int i = 0; i < static_cast<int>(cubes.size()); ++i)
+        {
+            if (i != selected_cube)
+            {
+                auto& cube = cubes[i];
+                if (geometry::intersect_gjk(cube_support, cube, cube_support, cubes[selected_cube]))
+                {
+                    cube.colliding = true;
+                    cubes[selected_cube].colliding = true;
+                }
+                else
+                {
+                    cube.colliding = false;
+                }
+            }
+        }
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         for (int i = 0; i < static_cast<int>(cubes.size()); ++i)
@@ -297,8 +320,7 @@ int main()
         glfwSwapBuffers(window);
 
         // Ideally glfwSwapBuffers will synch the frame rate to the vertical
-        // retrace rate. But if it doesn't, the framerate should still be capped.
-        // This will cap it to just over 60 fps.
+        // retrace rate. This it not guaranteed. If it doesn't, the framerate should still be capped.
 
         float frame_time = glfwGetTime();
 
