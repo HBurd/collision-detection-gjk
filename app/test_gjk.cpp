@@ -75,7 +75,7 @@ void test_simplex3_dir()
     Vec3 expected2(-0.5f, -0.5f, 1.0f);
 
     geometry::simplex3_dir(simplex2, simplex_size, d);
-    //assert(simplex_size == 2);
+    assert(simplex_size == 2);
 
     assert(dot(d, expected2) - d.mag()*expected2.mag() < 0.0001f);
 }
