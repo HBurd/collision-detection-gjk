@@ -2,6 +2,7 @@
 #include "math.hpp"
 
 #include <array>
+#include <GLFW/glfw3.h>
 
 using namespace demo::math;
 
@@ -44,26 +45,43 @@ Vec3 cube_support(Vec3 dir, const CubeData& data)
 
 int main()
 {
-    CubeData data1;
-    CubeData data2;
-    data2.position = Vec3(2.0f, 0.0f, 0.0f);
 
-    assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+    assert(glfwInit() != -1);
 
-    data2.position = Vec3(0.5f, 0.0f, 0.0f);
-    assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+    GLFWwindow* window = glfwCreateWindow(800, 600, "SENG 475 Project Demo", nullptr, nullptr);
+    assert(window);
 
-    data2.position = Vec3(0.0f, 1.01f, 0.0f);
-    assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
 
-    data2.position = Vec3(0.0f, 0.99f, 0.0f);
-    assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+    //CubeData data1;
+    //CubeData data2;
+    //data2.position = Vec3(2.0f, 0.0f, 0.0f);
 
-    data2.position = Vec3(0.99f, 0.99f, 0.99f);
-    assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+    //assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
 
-    data2.position = Vec3(1.01f, 0.99f, 0.99f);
-    assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+    //data2.position = Vec3(0.5f, 0.0f, 0.0f);
+    //assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+
+    //data2.position = Vec3(0.0f, 1.01f, 0.0f);
+    //assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+
+    //data2.position = Vec3(0.0f, 0.99f, 0.0f);
+    //assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+
+    //data2.position = Vec3(0.99f, 0.99f, 0.99f);
+    //assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+
+    //data2.position = Vec3(1.01f, 0.99f, 0.99f);
+    //assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
+
+    while (!glfwWindowShouldClose(window))
+    {
+        glClear(GL_COLOR_BUFFER_BIT);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
 
     return 0;
 }
