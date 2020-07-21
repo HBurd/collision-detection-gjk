@@ -4,6 +4,7 @@
 #include <array>
 #include <iostream>
 #include <cmath>
+#include <thread>    // sleep_for needed to enforce framerate
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -112,6 +113,7 @@ int main()
     GLFWwindow* window = glfwCreateWindow(800, 600, "SENG 475 Project Demo", nullptr, nullptr);
     assert(window);
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     glewExperimental = true;
     assert(glewInit() == GLEW_OK);
@@ -195,7 +197,8 @@ int main()
         "uniform mat3 orientation;\n"
         "uniform vec3 position;\n"
         "void main() {\n"
-        "    gl_Position = perspective * vec4(position + pos, 1.0f);\n"
+        "    vec3 camera_relative = position + orientation * pos;\n"
+        "    gl_Position = perspective * vec4(camera_relative, 1.0f);\n"
         "}\n";
     GLuint vshader = compile_shader(vshader_string, GL_VERTEX_SHADER);
 
@@ -208,6 +211,11 @@ int main()
     GLuint fshader = compile_shader(fshader_string, GL_FRAGMENT_SHADER);
 
     GLuint shader_program = link_shader_program(vshader, fshader);
+
+    // Measure time from the start of the frame
+    glfwSetTime(0.0);
+
+    double frame_time_cap = 1.0 / 60.0;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -240,6 +248,19 @@ int main()
         glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
+
+        // Ideally glfwSwapBuffers will synch the frame rate to the vertical
+        // retrace rate. But if it doesn't, the framerate should still be capped.
+        // This will cap it to just over 60 fps.
+
+        float frame_time = glfwGetTime();
+        if (frame_time < frame_time_cap)
+        {
+            std::this_thread::sleep_for(std::chrono::duration<double>(frame_time_cap - frame_time));
+        }
+
+        glfwSetTime(0.0);
+
         glfwPollEvents();
     }
 
