@@ -26,6 +26,9 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
     glewExperimental = true;
     assert(glewInit() == GLEW_OK);
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
     const char* vshader_string =
         "#version 330 core\n"
         "layout (location = 0) in vec3 pos;\n"
@@ -33,15 +36,20 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
         "uniform mat4 perspective;\n"
         "uniform mat3 orientation;\n"
         "uniform vec3 position;\n"
+        "out vec3 camera_relative_normal;\n"
+        "out vec3 camera_relative_position;\n"
         "void main() {\n"
-        "    vec3 camera_relative = position + orientation * pos;\n"
-        "    gl_Position = perspective * vec4(camera_relative, 1.0f);\n"
+        "    camera_relative_normal = orientation * normal;\n"
+        "    camera_relative_position = position + orientation * pos;\n"
+        "    gl_Position = perspective * vec4(camera_relative_position, 1.0f);\n"
         "}\n";
     const char* fshader_string =
         "#version 330 core\n"
+        "in vec3 camera_relative_normal;\n"
+        "in vec3 camera_relative_position;\n"
         "out vec4 colour;\n"
         "void main() {\n"
-        "    colour = vec4(1.0f, 0.0f, 1.0f, 1.0f);\n"
+        "    colour = vec4(-dot(normalize(camera_relative_position), normalize(camera_relative_normal)) * vec3(1.0f, 1.0f, 1.0f), 1.0f);\n"
         "}\n";
 
     shader_program = ShaderProgram(vshader_string, fshader_string);
