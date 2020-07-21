@@ -3,6 +3,7 @@
 
 #include <array>
 #include <iostream>
+#include <cmath>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -88,6 +89,20 @@ GLuint link_shader_program(GLuint vshader, GLuint fshader)
     }
 
     return program;
+}
+
+void make_perspective_matrix(float* data, float near, float far, float fov, float aspect_ratio)
+{
+    float csc_fov = 1.0f / sinf(fov * 0.5f);
+    float matrix_data[16] =
+    {
+        csc_fov, 0.0f, 0.0f, 0.0f,
+        0.0f, aspect_ratio * csc_fov, 0.0f, 0.0f,
+        0.0f, 0.0f, -(near + far) / (far - near), -2 * near * far / (far - near),
+        0.0f, 0.0f, -1.0f, 0.0f
+    };
+
+    std::copy_n(matrix_data, 16, data);
 }
 
 int main()
@@ -176,8 +191,11 @@ int main()
     const char* vshader_string =
         "#version 330 core\n"
         "layout (location = 0) in vec3 pos;\n"
+        "uniform mat4 perspective;\n"
+        "uniform mat3 orientation;\n"
+        "uniform vec3 position;\n"
         "void main() {\n"
-        "    gl_Position = vec4(pos.x, pos.y, 0.0f, 1.0f);\n"
+        "    gl_Position = perspective * vec4(position + pos, 1.0f);\n"
         "}\n";
     GLuint vshader = compile_shader(vshader_string, GL_VERTEX_SHADER);
 
@@ -194,14 +212,37 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT);
+
         glUseProgram(shader_program);
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cube_element_buf);
+        glBindVertexArray(cube_vao);
+
+        float perspective[16] = {};
+        make_perspective_matrix(perspective, 0.1f, 100.0f, 1.0f, 800.0f / 600.0f);
+
+        GLint location = glGetUniformLocation(shader_program, "perspective");
+        glUniformMatrix4fv(location, 1, GL_TRUE, perspective);
+
+        float orientation[] = {
+            1.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 1.0f
+        };
+
+        location = glGetUniformLocation(shader_program, "orientation");
+        glUniformMatrix3fv(location, 1, GL_TRUE, orientation);
+
+        Vec3 position(0.0f, 0.0f, -2.0f);
+        location = glGetUniformLocation(shader_program, "position");
+        glUniform3f(location, position.x, position.y, position.z);
+
         glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glfwDestroyWindow(window);
     glfwTerminate();
 
     return 0;
