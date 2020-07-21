@@ -26,6 +26,7 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
     glewExperimental = true;
     assert(glewInit() == GLEW_OK);
 
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 

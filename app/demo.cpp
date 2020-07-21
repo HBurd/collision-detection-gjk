@@ -142,15 +142,16 @@ int main()
 
     std::size_t cube_render_id = render_ctxt.load_object(cube_mesh.data(), normals.data(), 36);
 
-    {
-        cubes.emplace_back(Vec3(0.0f, 0.0f, -2.0f), Mat3::Identity(), cube_render_id);
-    }
-
     // Measure time from the start of the frame
     glfwSetTime(0.0);
 
     double frame_time_cap = 1.0 / 60.0;
     double last_frame_time = 0.0f;
+
+    bool up_held = false;
+    bool down_held = false;
+    bool left_held = false;
+    bool right_held = false;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -158,11 +159,58 @@ int main()
         {
             if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
             {
-                --selected_cube;
+                if (!left_held)
+                {
+                    left_held = true;
+                    --selected_cube;
+                }
             }
+            else
+            {
+                left_held = false;
+            }
+
             if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
             {
-                ++selected_cube;
+                if (!right_held)
+                {
+                    right_held = true;
+                    ++selected_cube;
+                }
+            }
+            else
+            {
+                right_held = false;
+            }
+
+            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+            {
+                if (!up_held)
+                {
+                    up_held = true;
+                    selected_cube = cubes.size();
+                    cubes.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), cube_render_id);
+                }
+            }
+            else
+            {
+                up_held = false;
+            }
+
+            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+            {
+                if (!down_held)
+                {
+                    down_held = true;
+                    if (cubes.size())
+                    {
+                        cubes.pop_back();
+                    }
+                }
+            }
+            else
+            {
+                down_held = false;
             }
 
             // Wrap the selected cube
@@ -237,7 +285,7 @@ int main()
             }
         }
 
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         for (const auto& cube : cubes)
         {
