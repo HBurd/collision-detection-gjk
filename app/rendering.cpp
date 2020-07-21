@@ -29,6 +29,7 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
     const char* vshader_string =
         "#version 330 core\n"
         "layout (location = 0) in vec3 pos;\n"
+        "layout (location = 1) in vec3 normal;\n"
         "uniform mat4 perspective;\n"
         "uniform mat3 orientation;\n"
         "uniform vec3 position;\n"
@@ -54,32 +55,38 @@ RenderContext::~RenderContext()
     glfwTerminate();
 }
 
-std::size_t RenderContext::load_object(const Vec3* positions, std::size_t pos_count,
-    const uint32_t* indices, std::size_t index_count)
+std::size_t RenderContext::load_object(const Vec3* positions, const Vec3* normals, std::size_t count)
 {
-    GLuint pos_vbo;
-    glGenBuffers(1, &pos_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, pos_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3) * pos_count, positions, GL_STATIC_DRAW);
-
+    // Create VAO
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
+
+    // Create and fill VBO with position and normal data
+    GLuint pos_vbo;
+    glGenBuffers(1, &pos_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, pos_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3) * count, positions, GL_STATIC_DRAW);
+
     glEnableVertexAttribArray(0);   // Location for position in shader program
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), 0);
 
-    GLuint index_buf;
-    glGenBuffers(1, &index_buf);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buf);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * index_count, indices, GL_STATIC_DRAW);
+    // Create and fill VBO for normal data
+    GLuint normal_vbo;
+    glGenBuffers(1, &normal_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, normal_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3) * count, normals, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(1);   // Location for normal in shader program
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), 0);
 
     std::size_t object_id = objects.size();
     objects.emplace_back();
 
     objects.back().pos_vbo = pos_vbo;
-    objects.back().index_buf = index_buf;
+    objects.back().normal_vbo = normal_vbo;
     objects.back().vao = vao;
-    objects.back().num_faces = index_count / 3;
+    objects.back().num_vertices = count;
 
     return object_id;
 }
@@ -90,7 +97,6 @@ void RenderContext::draw_object(std::size_t object_id, const Vec3& position, con
 
     const RenderObject& object = objects[object_id];
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object.index_buf);
     glBindVertexArray(object.vao);
 
     GLint location = glGetUniformLocation(shader_program.program, "perspective");
@@ -102,7 +108,7 @@ void RenderContext::draw_object(std::size_t object_id, const Vec3& position, con
     location = glGetUniformLocation(shader_program.program, "position");
     glUniform3f(location, position.x, position.y, position.z);
 
-    glDrawElements(GL_TRIANGLES, object.num_faces, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, object.num_vertices);
 }
 
 GLFWwindow* RenderContext::get_glfw_window()

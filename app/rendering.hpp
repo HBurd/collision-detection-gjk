@@ -18,8 +18,7 @@ namespace demo::rendering {
 
         ~RenderContext();
 
-        std::size_t load_object(const demo::math::Vec3* positions, std::size_t pos_count,
-            const uint32_t* indices, std::size_t index_count);
+        std::size_t load_object(const demo::math::Vec3* positions, const demo::math::Vec3* normals, std::size_t count);
 
         void draw_object(std::size_t object_id, const demo::math::Vec3& position, const float* orientation);
 
@@ -40,9 +39,9 @@ namespace demo::rendering {
         struct RenderObject
         {
             GLuint pos_vbo;
-            GLuint index_buf;
+            GLuint normal_vbo;
             GLuint vao;
-            GLsizei num_faces;
+            GLsizei num_vertices;
         };
 
         GLFWwindow* window;

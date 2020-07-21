@@ -84,27 +84,47 @@ int main()
         Vec3(-0.5f, -0.5f, -0.5f),
     };
 
-    std::array<uint32_t, 36> cube_indices = {
-        0, 1, 5,    // top face
-        0, 5, 4,
+    std::array<Vec3, 36> cube_mesh = {
+        cube_vertices[0], cube_vertices[1], cube_vertices[5],    // top face
+        cube_vertices[0], cube_vertices[5], cube_vertices[4],
 
-        0, 4, 2,    // front face
-        2, 4, 6,
+        cube_vertices[0], cube_vertices[4], cube_vertices[2],    // front face
+        cube_vertices[2], cube_vertices[4], cube_vertices[6],
 
-        2, 6, 7,    // bottom face
-        7, 3, 2,
+        cube_vertices[2], cube_vertices[6], cube_vertices[7],    // bottom face
+        cube_vertices[7], cube_vertices[3], cube_vertices[2],
 
-        3, 7, 5,    // back face
-        5, 2, 3,
+        cube_vertices[3], cube_vertices[7], cube_vertices[5],    // back face
+        cube_vertices[5], cube_vertices[2], cube_vertices[3],
 
-        0, 2, 1,    // right face
-        2, 3, 1,
+        cube_vertices[0], cube_vertices[2], cube_vertices[1],    // right face
+        cube_vertices[2], cube_vertices[3], cube_vertices[1],
 
-        4, 5, 7,    // bottom face
-        7, 6, 4
+        cube_vertices[4], cube_vertices[5], cube_vertices[7],    // bottom face
+        cube_vertices[7], cube_vertices[6], cube_vertices[4]
     };
 
-    std::size_t cube_id = render_ctxt.load_object(cube_vertices.data(), cube_vertices.size(), cube_indices.data(), cube_indices.size());
+    std::array<Vec3, 36> normals = {
+        Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), 
+        Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), 
+
+        Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 0.0f, -1.0f), 
+        Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 0.0f, -1.0f), 
+
+        Vec3(0.0f, -1.0f, 0.0f), Vec3(0.0f, -1.0f, 0.0f), Vec3(0.0f, -1.0f, 0.0f), 
+        Vec3(0.0f, -1.0f, 0.0f), Vec3(0.0f, -1.0f, 0.0f), Vec3(0.0f, -1.0f, 0.0f), 
+        
+        Vec3(0.0f, 0.0f, 1.0f), Vec3(0.0f, 0.0f, 1.0f), Vec3(0.0f, 0.0f, 1.0f), 
+        Vec3(0.0f, 0.0f, 1.0f), Vec3(0.0f, 0.0f, 1.0f), Vec3(0.0f, 0.0f, 1.0f), 
+
+        Vec3(1.0f, 0.0f, 0.0f), Vec3(1.0f, 0.0f, 0.0f), Vec3(1.0f, 0.0f, 0.0f), 
+        Vec3(1.0f, 0.0f, 0.0f), Vec3(1.0f, 0.0f, 0.0f), Vec3(1.0f, 0.0f, 0.0f), 
+
+        Vec3(-1.0f, 0.0f, 0.0f), Vec3(-1.0f, 0.0f, 0.0f), Vec3(-1.0f, 0.0f, 0.0f), 
+        Vec3(-1.0f, 0.0f, 0.0f), Vec3(-1.0f, 0.0f, 0.0f), Vec3(-1.0f, 0.0f, 0.0f), 
+    };
+
+    std::size_t cube_id = render_ctxt.load_object(cube_mesh.data(), normals.data(), 36);
 
     // Measure time from the start of the frame
     glfwSetTime(0.0);
