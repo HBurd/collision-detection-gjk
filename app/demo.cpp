@@ -16,6 +16,7 @@ struct CubeData
     Vec3 position;
     Mat3 orientation;
 
+    bool colliding = false;
     std::size_t render_id;
 
     CubeData(Vec3 pos, Mat3 orient, std::size_t id)
@@ -220,11 +221,11 @@ int main()
             }
             else if (selected_cube >= static_cast<int>(cubes.size()) || selected_cube < 0)
             {
-                selected_cube = selected_cube % cubes.size();
-                if (selected_cube < 0)
+                while (selected_cube < 0)
                 {
                     selected_cube += cubes.size();
                 }
+                selected_cube %= cubes.size();
             }
 
             if (cubes.size() != 0)
@@ -287,9 +288,10 @@ int main()
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (const auto& cube : cubes)
+        for (int i = 0; i < static_cast<int>(cubes.size()); ++i)
         {
-            render_ctxt.draw_object(cube.render_id, cube.position, cube.orientation.m[0]);
+            const auto& cube = cubes[i];
+            render_ctxt.draw_object(cube.render_id, cube.position, cube.orientation.m[0], i == selected_cube, cube.colliding);
         }
 
         glfwSwapBuffers(window);

@@ -46,11 +46,14 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
         "}\n";
     const char* fshader_string =
         "#version 330 core\n"
+        "uniform vec3 colour_mask;\n"
         "in vec3 camera_relative_normal;\n"
         "in vec3 camera_relative_position;\n"
         "out vec4 colour;\n"
         "void main() {\n"
-        "    colour = vec4(-dot(normalize(camera_relative_position), normalize(camera_relative_normal)) * vec3(1.0f, 1.0f, 1.0f), 1.0f);\n"
+        "    float angular_component = -dot(normalize(camera_relative_position), normalize(camera_relative_normal));\n"
+        "    float intensity = 0.5f + 0.5f * angular_component;"
+        "    colour = vec4(intensity * colour_mask, 1.0f);\n"
         "}\n";
 
     shader_program = ShaderProgram(vshader_string, fshader_string);
@@ -100,7 +103,7 @@ std::size_t RenderContext::load_object(const Vec3* positions, const Vec3* normal
     return object_id;
 }
 
-void RenderContext::draw_object(std::size_t object_id, const Vec3& position, const float* orientation)
+void RenderContext::draw_object(std::size_t object_id, const Vec3& position, const float* orientation, bool selected, bool colliding)
 {
     glUseProgram(shader_program.program);
 
@@ -116,6 +119,18 @@ void RenderContext::draw_object(std::size_t object_id, const Vec3& position, con
 
     location = glGetUniformLocation(shader_program.program, "position");
     glUniform3f(location, position.x, position.y, position.z);
+    
+    location = glGetUniformLocation(shader_program.program, "colour_mask");
+    Vec3 colour_mask(0.5f, 0.5f, 0.5f);
+    if (selected)
+    {
+        colour_mask.z = 1.0f;
+    }
+    if (colliding)
+    {
+        colour_mask.x = 1.0f;
+    }
+    glUniform3f(location, colour_mask.x, colour_mask.y, colour_mask.z);
 
     glDrawArrays(GL_TRIANGLES, 0, object.num_vertices);
 }

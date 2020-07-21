@@ -20,7 +20,7 @@ namespace demo::rendering {
 
         std::size_t load_object(const demo::math::Vec3* positions, const demo::math::Vec3* normals, std::size_t count);
 
-        void draw_object(std::size_t object_id, const demo::math::Vec3& position, const float* orientation);
+        void draw_object(std::size_t object_id, const demo::math::Vec3& position, const float* orientation, bool selected, bool colliding);
 
         GLFWwindow* get_glfw_window();
 
