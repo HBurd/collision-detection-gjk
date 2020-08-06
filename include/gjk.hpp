@@ -33,14 +33,14 @@ namespace geometry
     }
 
     template <class Vec3>
-    void simplex1_dir(Vec3* simplex, Vec3& d)
+    void simplex0_dir(Vec3* simplex, Vec3& d)
     {
-        // The simplex is a single point
+        // The simplex is a single point (0-dimensional)
         d = -*simplex;
     }
 
     template <class Vec3>
-    void simplex2_dir(Vec3* simplex, Vec3& d)
+    void simplex1_dir(Vec3* simplex, Vec3& d)
     {
         // The simplex is 2 points.
         // The way this is called, the closest point to the simplex can only
@@ -54,7 +54,7 @@ namespace geometry
     }
 
     template <class Vec3>
-    void simplex3_dir(Vec3* simplex, std::size_t& simplex_size, Vec3& d)
+    void simplex2_dir(Vec3* simplex, std::size_t& simplex_size, Vec3& d)
     {
         /*  The simplex is 3 points, a triangle
 
@@ -92,8 +92,8 @@ namespace geometry
 
         // TODO: decide on < vs <=
 
-        // Note: When adjusting simplex vertices for the 3-simplex case, the winding of
-        // the triangle needs to be reversed, so that the 4-simplex generated in the
+        // Note: When adjusting simplex vertices for the 2-simplex case, the winding of
+        // the triangle needs to be reversed, so that the 3-simplex generated in the
         // next step will have all its normals outward facing.
 
         if (f_plane < Real(0))
@@ -112,7 +112,7 @@ namespace geometry
                 // This means the origin is on the F side
                 simplex_size = 2;
                 simplex[1] = simplex[2];
-                simplex2_dir(simplex, d);
+                simplex1_dir(simplex, d);
             }
         }
         else if (d_plane < Real(0))
@@ -132,7 +132,7 @@ namespace geometry
                 simplex_size = 2;
                 simplex[0] = simplex[1];
                 simplex[1] = simplex[2];
-                simplex2_dir(simplex, d);
+                simplex1_dir(simplex, d);
             }
         }
         else
@@ -168,14 +168,14 @@ namespace geometry
                 // Origin is in region F
                 // We can discard simplex[1]
                 simplex[1] = simplex[2];
-                simplex2_dir(simplex, d);
+                simplex1_dir(simplex, d);
             }
             else
             {
                 // Origin is in region D
                 // We can discard simplex[0]
                 simplex[0] = simplex[2];
-                simplex2_dir(simplex, d);
+                simplex1_dir(simplex, d);
             }
         }
         else
@@ -202,7 +202,7 @@ namespace geometry
     }
 
     template <class Vec3>
-    bool simplex4_dir(Vec3* simplex, std::size_t& simplex_size, Vec3& d)
+    bool simplex3_dir(Vec3* simplex, std::size_t& simplex_size, Vec3& d)
     {
         using Real = decltype(Vec3::x);
 
@@ -261,7 +261,7 @@ namespace geometry
                     // Closest to edge12
                     simplex[1] = simplex[3];
                     simplex_size = 2;
-                    simplex2_dir(simplex, d);
+                    simplex1_dir(simplex, d);
                 }
             }
             else if (side_of_triangle1_edge13_boundary >= Real(0))
@@ -281,7 +281,7 @@ namespace geometry
                     // Closest to edge13
                     simplex[0] = simplex[1];
                     simplex[1] = simplex[3];
-                    simplex2_dir(simplex, d);
+                    simplex1_dir(simplex, d);
                     simplex_size = 2;
                 }
             }
@@ -312,7 +312,7 @@ namespace geometry
                     // Closest to edge23
                     simplex[0] = simplex[2];
                     simplex[1] = simplex[3];
-                    simplex2_dir(simplex, d);
+                    simplex1_dir(simplex, d);
                     simplex_size = 2;
                 }
             }
@@ -320,7 +320,7 @@ namespace geometry
             {
                 // Closest to edge12, since closest to triangle1 case is already ruled out
                 simplex[1] = simplex[3];
-                simplex2_dir(simplex, d);
+                simplex1_dir(simplex, d);
                 simplex_size = 2;
             }
             else
@@ -338,7 +338,7 @@ namespace geometry
                 // Closest to edge32, since closest to triangle2 case already ruled out
                 simplex[0] = simplex[2];
                 simplex[1] = simplex[3];
-                simplex2_dir(simplex, d);
+                simplex1_dir(simplex, d);
                 simplex_size = 2;
             }
             else if (side_of_triangle3_edge31_boundary >= Real(0))
@@ -346,7 +346,7 @@ namespace geometry
                 // Closest to edge31, since closest to triangle2 case already ruled out
                 simplex[0] = simplex[1];
                 simplex[1] = simplex[3];
-                simplex2_dir(simplex, d);
+                simplex1_dir(simplex, d);
                 simplex_size = 2;
             }
             else
@@ -399,16 +399,16 @@ namespace geometry
             switch (simplex_size)
             {
             case 1:
-                simplex1_dir(simplex_points, d);
+                simplex0_dir(simplex_points, d);
                 break;
             case 2:
-                simplex2_dir(simplex_points, d);
+                simplex1_dir(simplex_points, d);
                 break;
             case 3:
-                simplex3_dir(simplex_points, simplex_size, d);
+                simplex2_dir(simplex_points, simplex_size, d);
                 break;
             case 4:
-                intersection = simplex4_dir(simplex_points, simplex_size, d);
+                intersection = simplex3_dir(simplex_points, simplex_size, d);
                 break;
             default:
                 // Impossible case
