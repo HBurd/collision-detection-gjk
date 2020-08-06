@@ -92,6 +92,10 @@ namespace geometry
 
         // TODO: decide on < vs <=
 
+        // Note: When adjusting simplex vertices for the 3-simplex case, the winding of
+        // the triangle needs to be reversed, so that the 4-simplex generated in the
+        // next step will have all its normals outward facing.
+
         if (f_plane < Real(0))
         {
             // Now just check FE plane
@@ -245,32 +249,39 @@ namespace geometry
             if (side_of_triangle1_edge12_boundary >= Real(0))
             {
                 // Closest to edge12 or triangle2
-                if (side_of_triangle2_edge21_boundary < 0)
+                if (side_of_triangle2_edge21_boundary < Real(0))
                 {
                     // Closest to triangle2
                     d = triangle2_normal;
+                    simplex[1] = simplex[3];
                     simplex_size = 3;
                 }
                 else
                 {
                     // Closest to edge12
-                    d = cross(cross(simplex[3] - simplex[0], -simplex[0]), simplex[3] - simplex[0]);
+                    simplex[1] = simplex[3];
                     simplex_size = 2;
+                    simplex2_dir(simplex, d);
                 }
             }
             else if (side_of_triangle1_edge13_boundary >= Real(0))
             {
                 // Closest to edge13 or triangle3
-                if (side_of_triangle2_edge23_boundary < 0)
+                if (side_of_triangle3_edge31_boundary < Real(0))
                 {
                     // Closest to triangle3
                     d = triangle3_normal;
+                    simplex[0] = simplex[1];
+                    simplex[1] = simplex[2];
+                    simplex[2] = simplex[3];
                     simplex_size = 3;
                 }
                 else
                 {
                     // Closest to edge13
-                    d = cross(cross(simplex[1] - simplex[3], -simplex[3]), simplex[1] - simplex[3]);
+                    simplex[0] = simplex[1];
+                    simplex[1] = simplex[3];
+                    simplex2_dir(simplex, d);
                     simplex_size = 2;
                 }
             }
@@ -278,6 +289,7 @@ namespace geometry
             {
                 // Closest to triangle1
                 d = triangle1_normal;
+                simplex[2] = simplex[3];
                 simplex_size = 3;
             }
         }
@@ -290,25 +302,32 @@ namespace geometry
                 {
                     // Closest to triangle3
                     d = triangle3_normal;
+                    simplex[0] = simplex[1];
+                    simplex[1] = simplex[2];
+                    simplex[2] = simplex[3];
                     simplex_size = 3;
                 }
                 else
                 {
                     // Closest to edge23
-                    d = cross(cross(simplex[3] - simplex[2], -simplex[2]), simplex[3] - simplex[2]);
+                    simplex[0] = simplex[2];
+                    simplex[1] = simplex[3];
+                    simplex2_dir(simplex, d);
                     simplex_size = 2;
                 }
             }
             else if (side_of_triangle2_edge21_boundary >= Real(0))
             {
                 // Closest to edge12, since closest to triangle1 case is already ruled out
-                d = cross(cross(simplex[3] - simplex[0], -simplex[0]), simplex[3] - simplex[0]);
+                simplex[1] = simplex[3];
+                simplex2_dir(simplex, d);
                 simplex_size = 2;
             }
             else
             {
                 // Closest to triangle2
                 d = triangle2_normal;
+                simplex[1] = simplex[3];
                 simplex_size = 3;
             }
         }
