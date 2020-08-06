@@ -4,6 +4,7 @@
 
 #include <array>
 #include <thread>    // sleep_for needed to enforce framerate
+#include <iostream>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -75,27 +76,6 @@ int main()
 
     // TODO: The abstraction shouldn't deal with GLFW
     GLFWwindow* window = render_ctxt.get_glfw_window();
-
-    //CubeData data1;
-    //CubeData data2;
-    //data2.position = Vec3(2.0f, 0.0f, 0.0f);
-
-    //assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
-
-    //data2.position = Vec3(0.5f, 0.0f, 0.0f);
-    //assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
-
-    //data2.position = Vec3(0.0f, 1.01f, 0.0f);
-    //assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
-
-    //data2.position = Vec3(0.0f, 0.99f, 0.0f);
-    //assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
-
-    //data2.position = Vec3(0.99f, 0.99f, 0.99f);
-    //assert(geometry::intersect_gjk(cube_support, data1, cube_support, data2));
-
-    //data2.position = Vec3(1.01f, 0.99f, 0.99f);
-    //assert(!geometry::intersect_gjk(cube_support, data1, cube_support, data2));
 
     std::vector<CubeData> cubes;
     int selected_cube = 0;
@@ -297,7 +277,8 @@ int main()
             if (i != selected_cube)
             {
                 auto& cube = cubes[i];
-                if (geometry::intersect_gjk(cube_support, cube, cube_support, cubes[selected_cube]))
+                geometry::GjkStats stats;
+                if (geometry::intersect_gjk(cube_support, cube, cube_support, cubes[selected_cube], 100, &stats))
                 {
                     cube.colliding = true;
                     cubes[selected_cube].colliding = true;
@@ -305,6 +286,11 @@ int main()
                 else
                 {
                     cube.colliding = false;
+                }
+
+                if (stats.iteration_count == 100)
+                {
+                    std::cout << "GJK did not terminate after 100 iterations" << std::endl;
                 }
             }
         }

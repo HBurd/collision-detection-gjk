@@ -11,6 +11,11 @@ namespace geometry
     template <class Vec3, class Data>
     using SupportFn = Vec3 (*) (Vec3 dir, const Data& data);
 
+    struct GjkStats
+    {
+        std::size_t iteration_count;
+    };
+
     template <class Vec3>
     decltype(Vec3::x) dot(const Vec3& l, const Vec3& r)
     {
@@ -245,26 +250,32 @@ namespace geometry
             if (side_of_triangle3_edge32_boundary >= Real(0))
             {
                 // Closest to edge32, since closest to triangle2 case already ruled out
-                d = cross(cross(simplex[3] - simplex[2], -simplex[2]), simplex[3] - simplex[2]);
+                simplex[0] = simplex[2];
+                simplex[1] = simplex[3];
+                simplex2_dir(simplex, d);
                 simplex_size = 2;
             }
             else if (side_of_triangle3_edge31_boundary >= Real(0))
             {
                 // Closest to edge31, since closest to triangle2 case already ruled out
-                d = cross(cross(simplex[1] - simplex[3], -simplex[3]), simplex[1] - simplex[3]);
+                simplex[0] = simplex[1];
+                simplex[1] = simplex[3];
+                simplex2_dir(simplex, d);
                 simplex_size = 2;
             }
             else
             {
                 // Closest to triangle3
                 d = triangle3_normal;
+                simplex[0] = simplex[1];
+                simplex[1] = simplex[2];
+                simplex[2] = simplex[3];
                 simplex_size = 3;
             }
         }
         else
         {
             // Origin is contained in the triangle
-            // TODO: Should d be set here?
             return true;
         }
 
@@ -273,7 +284,11 @@ namespace geometry
 
     // TODO: are we treating resting contact as an intersection?
     template <class Vec3, class Data1, class Data2>
-    bool intersect_gjk(SupportFn<Vec3, Data1> support1, const Data1& data1, SupportFn<Vec3, Data2> support2, const Data2& data2)
+    bool intersect_gjk(
+        SupportFn<Vec3, Data1> support1, const Data1& data1,
+        SupportFn<Vec3, Data2> support2, const Data2& data2,
+        const std::size_t max_iterations = 100,
+        GjkStats* stats = nullptr)
     {
         using Real = decltype(Vec3::x);
 
@@ -284,13 +299,14 @@ namespace geometry
         std::size_t simplex_size = 0;
 
         bool intersection = false;
+        std::size_t iteration_count = 0;
         do
         {
             Vec3 point = support1(d, data1) - support2(-d, data2);
             if (dot(point, d) < Real(0))
             {
                 // Furthest point along d is not past the origin, so there is no intersection
-                return false;
+                break;
             }
             simplex_points[simplex_size++] = point;
 
@@ -312,9 +328,16 @@ namespace geometry
                 // Impossible case
                 assert(false);
             }
-        } while (!intersection);
 
-        return true;
+            ++iteration_count;
+        } while (!intersection && iteration_count < max_iterations);
+
+        if (stats)
+        {
+            stats->iteration_count = iteration_count;
+        }
+
+        return intersection;
     }
 
 }
