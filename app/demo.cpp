@@ -12,7 +12,7 @@
 using namespace demo::math;
 using namespace demo::rendering;
 
-struct CubeData
+struct ConvexHullInstance
 {
     Vec3 position;
     Mat3 orientation;
@@ -20,15 +20,16 @@ struct CubeData
     bool colliding = false;
     std::size_t render_id;
 
-    CubeData(Vec3 pos, Mat3 orient, std::size_t id)
-        : position(pos), orientation(orient), render_id(id)
+    ConvexHullInstance(Vec3 pos, Mat3 orient, std::size_t id, const Vec3* v, std::size_t v_count)
+        : position(pos), orientation(orient), render_id(id), vertices(v), vertex_count(v_count)
     {}
 
-    // These are just points on a convex hull
-    static const std::array<Vec3, 8> vertices;
+    // These are the points defining the convex hull
+    const Vec3* vertices;
+    std::size_t vertex_count;
 };
 
-const std::array<Vec3, 8> CubeData::vertices = {
+const std::array<Vec3, 8> cube_vertices = {
     Vec3(0.5f, 0.5f, 0.5f),
     Vec3(0.5f, 0.5f, -0.5f),
     Vec3(0.5f, -0.5f, 0.5f),
@@ -40,26 +41,14 @@ const std::array<Vec3, 8> CubeData::vertices = {
 };
 
 // This is for a unit cube
-Vec3 cube_support(Vec3 dir, const CubeData& data)
+Vec3 general_support(Vec3 dir, const ConvexHullInstance& data)
 {
-    // These are just points on a convex hull
-    std::array<Vec3, 8> vertices = {
-        data.position + data.orientation * CubeData::vertices[0],
-        data.position + data.orientation * CubeData::vertices[1],
-        data.position + data.orientation * CubeData::vertices[2],
-        data.position + data.orientation * CubeData::vertices[3],
-        data.position + data.orientation * CubeData::vertices[4],
-        data.position + data.orientation * CubeData::vertices[5],
-        data.position + data.orientation * CubeData::vertices[6],
-        data.position + data.orientation * CubeData::vertices[7],
-    };
-
-    // Note: A little sketchy
-    float max_dot = -1000.0f;
+    float max_dot = -1000.0f;   // TODO
     Vec3 max_dot_v = Vec3(0.0f, 0.0f, 0.0f);
 
-    for (auto v : vertices)
+    for (std::size_t i = 0; i < data.vertex_count; ++i)
     {
+        Vec3 v = data.position + data.orientation * data.vertices[i];
         if (dot(dir, v) > max_dot)
         {
             max_dot = dot(dir, v);
@@ -77,10 +66,9 @@ int main()
     // TODO: The abstraction shouldn't deal with GLFW
     GLFWwindow* window = render_ctxt.get_glfw_window();
 
-    std::vector<CubeData> cubes;
+    std::vector<ConvexHullInstance> cubes;
     int selected_cube = 0;
 
-    const auto& cube_vertices = CubeData::vertices;
     std::array<Vec3, 36> cube_mesh = {
         cube_vertices[0], cube_vertices[1], cube_vertices[5],    // top face
         cube_vertices[0], cube_vertices[5], cube_vertices[4],
@@ -170,7 +158,7 @@ int main()
                 {
                     up_held = true;
                     selected_cube = cubes.size();
-                    cubes.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), cube_render_id);
+                    cubes.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), cube_render_id, cube_vertices.data(), cube_vertices.size());
                 }
             }
             else
@@ -278,7 +266,7 @@ int main()
             {
                 auto& cube = cubes[i];
                 geometry::GjkStats stats;
-                if (geometry::intersect_gjk(cube_support, cube, cube_support, cubes[selected_cube], 100, &stats))
+                if (geometry::intersect_gjk(general_support, cube, general_support, cubes[selected_cube], 100, &stats))
                 {
                     cube.colliding = true;
                     cubes[selected_cube].colliding = true;
