@@ -83,11 +83,77 @@ namespace geometry
         // Looking down at counter-clockwise triangle, this is pointing up
         Vec3 triangle_normal = cross(simplex[1] - simplex[0], simplex[2] - simplex[0]);
 
-        Real f_plane(dot(cross(triangle_normal, simplex[2] - simplex[0]), simplex[0]));
-        Real d_plane(dot(cross(triangle_normal, simplex[1] - simplex[2]), simplex[2]));
+        Vec3 f_normal = cross(triangle_normal, simplex[2] - simplex[0]);
+        Vec3 d_normal = cross(triangle_normal, simplex[1] - simplex[2]);
+
+        // Positive means the origin is in the negative side of the corresponding plane
+        Real f_plane(dot(f_normal, simplex[0]));
+        Real d_plane(dot(d_normal, simplex[2]));
 
         // TODO: decide on < vs <=
 
+        if (f_plane < Real(0))
+        {
+            // Now just check FE plane
+            // The normal in the dot points from F to E
+            if (dot(cross(f_normal, triangle_normal), simplex[2]) < Real(0))
+            {
+                // This means the origin is on the E side
+                simplex_size = 1;
+                simplex[0] = simplex[2];
+                d = -simplex[0];
+            }
+            else
+            {
+                // This means the origin is on the F side
+                simplex_size = 2;
+                simplex[1] = simplex[2];
+                simplex2_dir(simplex, d);
+            }
+        }
+        else if (d_plane < Real(0))
+        {
+            // Now just check DE plane
+            // The normal in the dot points from D to E
+            if (dot(cross(triangle_normal, d_normal), simplex[2]) < Real(0))
+            {
+                // This means the origin is on the E side
+                simplex_size = 1;
+                simplex[0] = simplex[2];
+                d = -simplex[0];
+            }
+            else
+            {
+                // This means the origin is on the D side
+                simplex_size = 2;
+                simplex[0] = simplex[1];
+                simplex[1] = simplex[2];
+                simplex2_dir(simplex, d);
+            }
+        }
+        else
+        {
+            // Origin is in region G or H
+            simplex_size = 3;
+
+            if (dot(triangle_normal, simplex[0]) < Real(0))
+            {
+                // Origin is above the triangle
+                d = triangle_normal;
+
+                // Make the search direction opposite the triangle normal,
+                // so the 4-simplex is always consistently constructed.
+                std::swap(simplex[1], simplex[2]);
+            }
+            else
+            {
+                // Origin is below triangle
+                d = -triangle_normal;
+            }
+        }
+
+
+        /*
         if (f_plane * d_plane < Real(0))
         {
             // Origin is in region D or F
@@ -128,6 +194,7 @@ namespace geometry
                 d = -triangle_normal;
             }
         }
+        */
     }
 
     template <class Vec3>
