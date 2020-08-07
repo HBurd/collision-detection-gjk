@@ -22,6 +22,11 @@ add_executable(test_math app/test_math.cpp app/math.cpp)
 add_executable(test_load_mesh app/test_load_mesh.cpp app/load_mesh.cpp app/math.cpp app/mesh_tools.cpp)
 add_executable(test_gjk app/test_gjk.cpp app/math.cpp)
 
+# Copy demo_meshes folder into the demo target directory
+add_custom_command(TARGET demo POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   ${CMAKE_SOURCE_DIR}/demo_meshes $<TARGET_FILE_DIR:demo>/demo_meshes)
+
 # Link with GLFW, OpenGL, GLEW
 find_package(glfw3 3.3 REQUIRED)
 target_link_libraries(demo glfw)

@@ -170,7 +170,7 @@ void off_parse_face(const std::string& line,
         // If control reaches here, parsing was successful
         for (std::size_t i = 0; i < 3; ++i)
         {
-            triangles.push_back(vertices[i]);
+            triangles.push_back(vertices_to_add[i]);
         }
     }
 }
