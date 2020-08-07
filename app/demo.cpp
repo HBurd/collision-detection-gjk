@@ -62,7 +62,11 @@ int main()
         std::vector<Vec3> triangles;
         std::vector<Vec3> normals;
 
-        demo::mesh::load_mesh("demo_meshes/cube.off", cube_vertices, triangles, normals);
+        demo::mesh::load_mesh("demo_meshes/monkey_cvx.off", cube_vertices, triangles, normals);
+        if (!triangles.size())
+        {
+            std::cout << "Unable to load mesh" << std::endl;
+        }
         cube_render_id = render_ctxt.load_object(triangles.data(), normals.data(), triangles.size());
     }
 
