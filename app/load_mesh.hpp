@@ -16,6 +16,15 @@ void off_parse_face(const std::string& line,
                     std::vector<demo::math::Vec3>& triangles);
 // End internal
 
+// Loads a mesh from a file and computes normals if necessary
+// (it might not be necessary in the OBJ case).
+// Right now this only supports OFF, but it may support other
+// filetypes (e.g. OBJ) in the future.
+void load_mesh(const char* filename,
+               std::vector<demo::math::Vec3>& vertices,
+               std::vector<demo::math::Vec3>& triangles,
+               std::vector<demo::math::Vec3>& normals);
+
 void load_off(const char* filename,
               std::vector<demo::math::Vec3>& vertices,
               std::vector<demo::math::Vec3>& triangles);

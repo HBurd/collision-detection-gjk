@@ -44,14 +44,22 @@ Vec3 Vec3::operator-=(const Vec3& rhs)
     return *this;
 }
 
-float Vec3::sq_mag()
+float Vec3::sq_mag() const
 {
     return x*x + y*y + z*z;
 }
 
-float Vec3::mag()
+float Vec3::mag() const
 {
     return sqrtf(sq_mag());
+}
+
+void Vec3::normalize()
+{
+    float magnitude = mag();
+    x /= magnitude;
+    y /= magnitude;
+    z /= magnitude;
 }
 
 Vec3 Vec3::X(float x)
@@ -82,6 +90,13 @@ Vec3 operator*(const Vec3& lhs, float rhs)
 float dot(const Vec3& v1, const Vec3& v2)
 {
     return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
+}
+
+Vec3 cross(const Vec3& v1, const Vec3& v2)
+{
+    return Vec3(v1.y*v2.z - v1.z*v2.y,
+                v1.z*v2.x - v1.x*v2.z,
+                v1.x*v2.y - v1.y*v2.x);
 }
 
 Mat3::Mat3()

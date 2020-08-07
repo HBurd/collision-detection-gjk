@@ -27,10 +27,12 @@ struct Vec3
     Vec3 operator-=(const Vec3& rhs);
 
     // square magnitude
-    float sq_mag();
+    float sq_mag() const;
 
     // magnitude
-    float mag();
+    float mag() const;
+
+    void normalize();
 
     static Vec3 X(float x);
     static Vec3 Y(float y);
@@ -42,6 +44,7 @@ Vec3 operator*(float lhs, const Vec3& rhs);
 Vec3 operator*(const Vec3& lhs, float rhs);
 
 float dot(const Vec3& v1, const Vec3& v2);
+Vec3 cross(const Vec3& v1, const Vec3& v2);
 
 struct Mat3
 {

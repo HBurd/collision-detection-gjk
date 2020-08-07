@@ -70,10 +70,12 @@ int main()
     {
         std::vector<Vec3> vertices;
         std::vector<Vec3> triangles;
+        std::vector<Vec3> normals;
 
-        demo::mesh::load_off("test_mesh.off", vertices, triangles);
+        demo::mesh::load_mesh("test_mesh.off", vertices, triangles, normals);
         std::cout << vertices.size() << std::endl;
         std::cout << triangles.size() << std::endl;
+        std::cout << normals.size() << std::endl;
     }
 
     std::vector<ConvexHullInstance> cubes;

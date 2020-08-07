@@ -1,10 +1,41 @@
 #include "load_mesh.hpp"
+#include "mesh_tools.hpp"
 #include <fstream>
 #include <string>
 #include <cstdlib>  // using strtoul instead of stoul, since no exceptions
 #include <cctype>
+#include <cstring>
 
 namespace demo::mesh {
+
+void load_mesh(const char* filename,
+               std::vector<demo::math::Vec3>& vertices,
+               std::vector<demo::math::Vec3>& triangles,
+               std::vector<demo::math::Vec3>& normals)
+{
+    // Find the last occurrence of '.' for file extension
+    const char* extension = strrchr(filename, '.');
+    if (!extension)
+    {
+        // No filename so the file type can't be determined
+        return;
+    }
+
+    if (strcmp(extension, ".off") == 0)
+    {
+        // Load vertices and triangles
+        load_off(filename, vertices, triangles);
+
+        // Compute normals
+        compute_normals(triangles, normals);
+    }
+    else if (strcmp(extension, ".obj") == 0)
+    {
+        // obj not supported yet
+        return;
+    }
+}
+
 
 enum class OffParseState
 {
