@@ -54,16 +54,94 @@ bool off_parse_counts(const std::string& line, std::size_t& vertex_count, std::s
     return false;
 }
 
-bool off_parse_vertex(const std::string& line, std::vector<demo::math::Vec3>& vertices)
+// If the line isn't a valid vertex, this function will silently fail by
+// not adding a vertex to vertices. This is also the behaviour for valid
+// lines such as whitespace or comments.
+void off_parse_vertex(const std::string& line, std::vector<demo::math::Vec3>& vertices)
 {
-    return false;
+    std::size_t line_idx = skip_whitespace(line.c_str());
+
+    // Only parse a number if a non-comment character was found
+    if (line[line_idx] && line[line_idx] != '#')
+    {
+        char* end;
+
+        const char* x_start = line.c_str() + line_idx;
+        float x = strtof(x_start, &end);
+        if (end == x_start)
+        {
+            // This means no conversion could be performed
+            return;
+        }
+
+        const char* y_start = end;
+        float y = strtof(y_start, &end);
+        if (end == y_start)
+        {
+            // This means no conversion could be performed
+            return;
+        }
+
+        const char* z_start = end;
+        float z = strtof(z_start, &end);
+        if (end == z_start)
+        {
+            // This means no conversion could be performed
+            return;
+        }
+
+        vertices.emplace_back(x, y, z);
+    }
 }
 
-bool off_parse_face(const std::string& line,
+// If the line doesn't validly describe a triangle, this function fails
+// silently. This is also the behaviour for comments and whitespace.
+void off_parse_face(const std::string& line,
                     const std::vector<demo::math::Vec3>& vertices,
                     std::vector<demo::math::Vec3>& triangles)
 {
-    return false;
+    std::size_t line_idx = skip_whitespace(line.c_str());
+
+    // Only parse a number if a non-comment character was found
+    if (line[line_idx] && line[line_idx] != '#')
+    {
+        char* end;
+
+        const char* vertex_count_start = line.c_str() + line_idx;
+        std::size_t vertex_count = strtoul(vertex_count_start, &end, 10);
+
+        // Only triangle-faces are supported
+        if (vertex_count != 3)
+        {
+            return;
+        }
+
+        demo::math::Vec3 vertices_to_add[3];
+
+        for (std::size_t i = 0; i < 3; ++i)
+        {
+            const char* v_start = end;
+            std::size_t v_idx = strtoul(v_start, &end, 10);
+            if (end == v_start)
+            {
+                // This means no conversion could be performed
+                return;
+            }
+            if (v_idx >= vertices.size())
+            {
+                // This means v_idx doesn't represent a valid vertex
+                return;
+            }
+
+            vertices_to_add[i] = vertices[v_idx];
+        }
+
+        // If control reaches here, parsing was successful
+        for (std::size_t i = 0; i < 3; ++i)
+        {
+            triangles.push_back(vertices[i]);
+        }
+    }
 }
 
 void load_off(const char* filename,
