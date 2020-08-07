@@ -1,6 +1,7 @@
 #include "gjk.hpp"
 #include "math.hpp"
 #include "rendering.hpp"
+#include "load_mesh.hpp"
 
 #include <array>
 #include <thread>    // sleep_for needed to enforce framerate
@@ -65,6 +66,15 @@ int main()
 
     // TODO: The abstraction shouldn't deal with GLFW
     GLFWwindow* window = render_ctxt.get_glfw_window();
+
+    {
+        std::vector<Vec3> vertices;
+        std::vector<Vec3> triangles;
+
+        demo::mesh::load_off("test_mesh.off", vertices, triangles);
+        std::cout << vertices.size() << std::endl;
+        std::cout << triangles.size() << std::endl;
+    }
 
     std::vector<ConvexHullInstance> cubes;
     int selected_cube = 0;
