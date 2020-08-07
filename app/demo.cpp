@@ -6,6 +6,7 @@
 #include <array>
 #include <thread>    // sleep_for needed to enforce framerate
 #include <iostream>
+#include <thread>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -49,7 +50,7 @@ Vec3 general_support(Vec3 dir, const ConvexHullInstance& data)
     return max_dot_v;
 }
 
-int main()
+void run_window_app()
 {
     RenderContext render_ctxt(800, 600, "SENG 475 Project Demo");
 
@@ -270,6 +271,12 @@ int main()
 
         glfwPollEvents();
     }
+}
+
+int main()
+{
+    std::thread window_thread(run_window_app);
+    window_thread.join();
 
     return 0;
 }

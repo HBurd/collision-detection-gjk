@@ -35,6 +35,11 @@ target_link_libraries(demo OpenGL::GL)
 find_package(GLEW REQUIRED)
 target_link_libraries(demo ${GLEW_LIBRARIES})
 
+# Find threads library
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(demo Threads::Threads)
+
 if(ENABLE_COVERAGE)
     setup_target_for_coverage_lcov(
         NAME math_coverage
