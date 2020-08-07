@@ -1,0 +1,7 @@
+name "Hugo Burd"
+student_id "V00815719"
+email "hburd@protonmail.com"
+term "2020-05"
+course "SENG475"
+section "T01"
+assignment "cpp_project"
