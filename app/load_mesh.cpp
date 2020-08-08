@@ -13,6 +13,10 @@ void load_mesh(const char* filename,
                std::vector<demo::math::Vec3>& triangles,
                std::vector<demo::math::Vec3>& normals)
 {
+    vertices.clear();
+    triangles.clear();
+    normals.clear();
+
     // Find the last occurrence of '.' for file extension
     const char* extension = strrchr(filename, '.');
     if (!extension)
@@ -179,6 +183,8 @@ void load_off(const char* filename,
     std::vector<demo::math::Vec3>& vertices,
     std::vector<demo::math::Vec3>& triangles)
 {
+    vertices.clear();
+    triangles.clear();
     std::ifstream file(filename);
     std::string line;
 

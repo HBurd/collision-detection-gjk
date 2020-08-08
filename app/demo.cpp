@@ -6,7 +6,13 @@
 #include <array>
 #include <thread>    // sleep_for needed to enforce framerate
 #include <iostream>
+#include <iomanip>
+#include <sstream>
+
 #include <thread>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -50,25 +56,118 @@ Vec3 general_support(Vec3 dir, const ConvexHullInstance& data)
     return max_dot_v;
 }
 
-void run_window_app()
+struct Mesh
 {
+    std::size_t render_id;
+    std::vector<Vec3> vertices;
+    std::string filename;
+
+    Mesh(std::size_t render_id_, std::string&& filename_)
+        : render_id(render_id_), filename(std::move(filename_))
+    {}
+};
+
+struct IOData
+{
+    std::atomic_bool load_mesh = false;
+    std::string mesh_filename;
+    std::vector<Vec3> vertices_to_load;
+    std::vector<Vec3> triangles_to_load;
+    std::vector<Vec3> normals_to_load;
+
+    std::atomic_bool list_mesh = false;
+
+    std::mutex mutex;
+    std::condition_variable cv;
+};
+
+void input_thread_func(IOData& io_data)
+{
+    bool do_input = true;
+    while (do_input)
+    {
+        std::cout << "> ";
+
+        std::string command;
+        std::getline(std::cin, command);
+
+        std::stringstream command_sstream(command);
+
+        std::string word;
+        command_sstream >> word;
+
+        if (word == "load")
+        {
+            // Command to load mesh
+
+            std::string filename;
+            command_sstream >> filename;
+
+            demo::mesh::load_mesh(filename.c_str(), io_data.vertices_to_load, io_data.triangles_to_load, io_data.normals_to_load);
+            if (!io_data.vertices_to_load.size())
+            {
+                std::cout << "Unable to load mesh" << std::endl;
+            }
+
+            io_data.mesh_filename = std::move(filename);
+
+            std::unique_lock lock(io_data.mutex);
+            io_data.load_mesh = true;
+            do
+            {
+                io_data.cv.wait(lock);
+            } while (io_data.load_mesh);
+            std::cout << "mesh loaded" << std::endl;
+        }
+        else if (word == "list")
+        {
+            command_sstream >> word;
+
+            if (word == "mesh")
+            {
+                std::unique_lock lock(io_data.mutex);
+                io_data.list_mesh = true;
+                do
+                {
+                    io_data.cv.wait(lock);
+                } while (io_data.list_mesh);
+            }
+        }
+        else if (word == "quit")
+        {
+            do_input = false;
+        }
+    }
+}
+
+int main()
+{
+    std::vector<Mesh> meshes;
+    int selected_mesh = 0;
+
+    IOData io_data;
+
+    std::thread input_thread(input_thread_func, std::ref(io_data));
+
     RenderContext render_ctxt(800, 600, "SENG 475 Project Demo");
 
     // TODO: The abstraction shouldn't deal with GLFW
     GLFWwindow* window = render_ctxt.get_glfw_window();
 
-    std::vector<Vec3> cube_vertices;
-    std::size_t cube_render_id;
     {
+        std::vector<Vec3> vertices;
         std::vector<Vec3> triangles;
         std::vector<Vec3> normals;
 
-        demo::mesh::load_mesh("demo_meshes/monkey_cvx.off", cube_vertices, triangles, normals);
+        std::string demo_filename("demo_meshes/monkey_cvx.off");
+
+        demo::mesh::load_mesh(demo_filename.c_str(), vertices, triangles, normals);
         if (!triangles.size())
         {
             std::cout << "Unable to load mesh" << std::endl;
         }
-        cube_render_id = render_ctxt.load_object(triangles.data(), normals.data(), triangles.size());
+        meshes.emplace_back(render_ctxt.load_object(triangles.data(), normals.data(), triangles.size()), std::move(demo_filename));
+        meshes.back().vertices = std::move(vertices);
     }
 
     std::vector<ConvexHullInstance> cubes;
@@ -87,7 +186,35 @@ void run_window_app()
 
     while (!glfwWindowShouldClose(window))
     {
-        // Handle input
+        // Handle input from the input thread
+        if (io_data.load_mesh)
+        {
+            std::scoped_lock lock(io_data.mutex);
+
+            selected_mesh = meshes.size();
+
+            meshes.emplace_back(render_ctxt.load_object(
+                    io_data.triangles_to_load.data(),
+                    io_data.normals_to_load.data(),
+                    io_data.triangles_to_load.size()),
+                std::move(io_data.mesh_filename));
+            meshes.back().vertices = std::move(io_data.vertices_to_load);
+
+            io_data.load_mesh = false;
+            io_data.cv.notify_one();
+        }
+        if (io_data.list_mesh)
+        {
+            std::cout << "Mesh ID   Number of Vertices   Filename\n";
+            for (std::size_t i = 0; i < meshes.size(); ++i)
+            {
+                std::cout << std::left << std::setw(10) << i << std::setw(21) << meshes[i].vertices.size() << meshes[i].filename << "\n";
+            }
+            io_data.list_mesh = false;
+            io_data.cv.notify_one();
+        }
+
+        // Handle keyboard input
         {
             if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
             {
@@ -121,7 +248,8 @@ void run_window_app()
                 {
                     up_held = true;
                     selected_cube = cubes.size();
-                    cubes.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), cube_render_id, cube_vertices.data(), cube_vertices.size());
+
+                    cubes.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), meshes[selected_mesh].render_id, meshes[selected_mesh].vertices.data(), meshes[selected_mesh].vertices.size());
                 }
             }
             else
@@ -271,12 +399,6 @@ void run_window_app()
 
         glfwPollEvents();
     }
-}
-
-int main()
-{
-    std::thread window_thread(run_window_app);
-    window_thread.join();
 
     return 0;
 }
