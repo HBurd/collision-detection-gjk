@@ -20,21 +20,31 @@
 using namespace demo::math;
 using namespace demo::rendering;
 
+struct Mesh
+{
+    std::size_t render_id;
+    std::vector<Vec3> vertices;
+    std::string filename;
+
+    Mesh(std::size_t render_id_, std::string&& filename_)
+        : render_id(render_id_), filename(filename_)
+    {}
+};
+
 struct ConvexHullInstance
 {
     Vec3 position;
     Mat3 orientation;
 
     bool colliding = false;
-    std::size_t render_id;
 
-    ConvexHullInstance(Vec3 pos, Mat3 orient, std::size_t id, const Vec3* v, std::size_t v_count)
-        : position(pos), orientation(orient), render_id(id), vertices(v), vertex_count(v_count)
-    {}
-
-    // These are the points defining the convex hull
     const Vec3* vertices;
     std::size_t vertex_count;
+    std::size_t render_id;
+
+    ConvexHullInstance(Vec3 pos, Mat3 orient, const Vec3* vertices_, std::size_t vertex_count_, std::size_t render_id_)
+        : position(pos), orientation(orient), vertices(vertices_), vertex_count(vertex_count_), render_id(render_id_)
+    {}
 };
 
 // This is for a unit cube
@@ -56,17 +66,6 @@ Vec3 general_support(Vec3 dir, const ConvexHullInstance& data)
     return max_dot_v;
 }
 
-struct Mesh
-{
-    std::size_t render_id;
-    std::vector<Vec3> vertices;
-    std::string filename;
-
-    Mesh(std::size_t render_id_, std::string&& filename_)
-        : render_id(render_id_), filename(std::move(filename_))
-    {}
-};
-
 struct IOData
 {
     std::atomic_bool load_mesh = false;
@@ -76,6 +75,13 @@ struct IOData
     std::vector<Vec3> normals_to_load;
 
     std::atomic_bool list_mesh = false;
+    std::atomic_bool list_object = false;
+
+    std::atomic_bool select_mesh = false;
+    std::size_t selected_mesh = 0;
+
+    std::atomic_bool select_object = false;
+    std::size_t selected_object = 0;
 
     std::mutex mutex;
     std::condition_variable cv;
@@ -108,16 +114,18 @@ void input_thread_func(IOData& io_data)
             {
                 std::cout << "Unable to load mesh" << std::endl;
             }
-
-            io_data.mesh_filename = std::move(filename);
-
-            std::unique_lock lock(io_data.mutex);
-            io_data.load_mesh = true;
-            do
+            else
             {
-                io_data.cv.wait(lock);
-            } while (io_data.load_mesh);
-            std::cout << "mesh loaded" << std::endl;
+                io_data.mesh_filename = std::move(filename);
+
+                std::unique_lock lock(io_data.mutex);
+                io_data.load_mesh = true;
+                do
+                {
+                    io_data.cv.wait(lock);
+                } while (io_data.load_mesh);
+                std::cout << "mesh loaded" << std::endl;
+            }
         }
         else if (word == "list")
         {
@@ -132,10 +140,37 @@ void input_thread_func(IOData& io_data)
                     io_data.cv.wait(lock);
                 } while (io_data.list_mesh);
             }
+            else if (word == "object")
+            {
+                std::unique_lock lock(io_data.mutex);
+                io_data.list_object = true;
+                do
+                {
+                    io_data.cv.wait(lock);
+                } while (io_data.list_object);
+            }
         }
-        else if (word == "quit")
+        else if (word == "mesh")
         {
-            do_input = false;
+            command_sstream >> io_data.selected_mesh;
+
+            std::unique_lock lock(io_data.mutex);
+            io_data.select_mesh = true;
+            do
+            {
+                io_data.cv.wait(lock);
+            } while (io_data.select_mesh);
+        }
+        else if (word == "object")
+        {
+            command_sstream >> io_data.selected_object;
+
+            std::unique_lock lock(io_data.mutex);
+            io_data.select_object = true;
+            do
+            {
+                io_data.cv.wait(lock);
+            } while (io_data.select_object);
         }
     }
 }
@@ -205,12 +240,62 @@ int main()
         }
         if (io_data.list_mesh)
         {
+            std::scoped_lock lock(io_data.mutex);
+
             std::cout << "Mesh ID   Number of Vertices   Filename\n";
             for (std::size_t i = 0; i < meshes.size(); ++i)
             {
                 std::cout << std::left << std::setw(10) << i << std::setw(21) << meshes[i].vertices.size() << meshes[i].filename << "\n";
             }
+
             io_data.list_mesh = false;
+            io_data.cv.notify_one();
+        }
+        if (io_data.list_object)
+        {
+            std::scoped_lock lock(io_data.mutex);
+
+            //std::cout << "Object ID   Mesh Filename\n";
+            //for (std::size_t i = 0; i < cubes.size(); ++i)
+            //{
+            //    std::cout << std::left << std::setw(12) << i << cubes[i].mesh.filename << "\n";
+            //}
+
+            io_data.list_object = false;
+            io_data.cv.notify_one();
+        }
+        if (io_data.select_mesh)
+        {
+            std::scoped_lock lock(io_data.mutex);
+
+            if (io_data.selected_mesh < meshes.size())
+            {
+                selected_mesh = io_data.selected_mesh;
+                std::cout << "Mesh " << selected_mesh << " selected.\n";
+            }
+            else
+            {
+                std::cout << "Error: This mesh does not exist.\n";
+            }
+
+            io_data.select_mesh = false;
+            io_data.cv.notify_one();
+        }
+        if (io_data.select_object)
+        {
+            std::scoped_lock lock(io_data.mutex);
+
+            if (io_data.selected_object < cubes.size())
+            {
+                selected_cube = io_data.selected_object;
+                std::cout << "Object " << selected_cube << " selected.\n";
+            }
+            else
+            {
+                std::cout << "Error: This object does not exist.\n";
+            }
+
+            io_data.select_object = false;
             io_data.cv.notify_one();
         }
 
@@ -249,7 +334,9 @@ int main()
                     up_held = true;
                     selected_cube = cubes.size();
 
-                    cubes.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), meshes[selected_mesh].render_id, meshes[selected_mesh].vertices.data(), meshes[selected_mesh].vertices.size());
+                    const auto& vertices = meshes[selected_mesh].vertices;
+
+                    cubes.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
                 }
             }
             else
