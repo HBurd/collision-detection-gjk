@@ -38,6 +38,11 @@ struct ConvexHullInstance
 
     bool colliding = false;
 
+    // A reference to a Mesh is not being used here because the meshes
+    // exist in a vector so do not have stable references. The actual
+    // vertex data does have a stable reference since it is never modified.
+    // This also has the benefit of avoiding a double inderection (i.e.
+    // the vertices don't have to be accessed through a Mesh reference).
     const Vec3* vertices;
     std::size_t vertex_count;
     std::size_t render_id;
@@ -75,13 +80,9 @@ struct IOData
     std::vector<Vec3> normals_to_load;
 
     std::atomic_bool list_mesh = false;
-    std::atomic_bool list_object = false;
 
     std::atomic_bool select_mesh = false;
     std::size_t selected_mesh = 0;
-
-    std::atomic_bool select_object = false;
-    std::size_t selected_object = 0;
 
     std::mutex mutex;
     std::condition_variable cv;
@@ -140,15 +141,6 @@ void input_thread_func(IOData& io_data)
                     io_data.cv.wait(lock);
                 } while (io_data.list_mesh);
             }
-            else if (word == "object")
-            {
-                std::unique_lock lock(io_data.mutex);
-                io_data.list_object = true;
-                do
-                {
-                    io_data.cv.wait(lock);
-                } while (io_data.list_object);
-            }
         }
         else if (word == "mesh")
         {
@@ -160,17 +152,6 @@ void input_thread_func(IOData& io_data)
             {
                 io_data.cv.wait(lock);
             } while (io_data.select_mesh);
-        }
-        else if (word == "object")
-        {
-            command_sstream >> io_data.selected_object;
-
-            std::unique_lock lock(io_data.mutex);
-            io_data.select_object = true;
-            do
-            {
-                io_data.cv.wait(lock);
-            } while (io_data.select_object);
         }
     }
 }
@@ -251,19 +232,6 @@ int main()
             io_data.list_mesh = false;
             io_data.cv.notify_one();
         }
-        if (io_data.list_object)
-        {
-            std::scoped_lock lock(io_data.mutex);
-
-            //std::cout << "Object ID   Mesh Filename\n";
-            //for (std::size_t i = 0; i < cubes.size(); ++i)
-            //{
-            //    std::cout << std::left << std::setw(12) << i << cubes[i].mesh.filename << "\n";
-            //}
-
-            io_data.list_object = false;
-            io_data.cv.notify_one();
-        }
         if (io_data.select_mesh)
         {
             std::scoped_lock lock(io_data.mutex);
@@ -279,23 +247,6 @@ int main()
             }
 
             io_data.select_mesh = false;
-            io_data.cv.notify_one();
-        }
-        if (io_data.select_object)
-        {
-            std::scoped_lock lock(io_data.mutex);
-
-            if (io_data.selected_object < cubes.size())
-            {
-                selected_cube = io_data.selected_object;
-                std::cout << "Object " << selected_cube << " selected.\n";
-            }
-            else
-            {
-                std::cout << "Error: This object does not exist.\n";
-            }
-
-            io_data.select_object = false;
             io_data.cv.notify_one();
         }
 
