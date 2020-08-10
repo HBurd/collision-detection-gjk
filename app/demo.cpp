@@ -236,6 +236,66 @@ public:
         }
     }
 
+    Vec3 get_wasdqe_vector()
+    {
+        Vec3 result;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        {
+            result += Vec3(0.0f, 0.0f, -1.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        {
+            result += Vec3(0.0f, 0.0f, 1.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        {
+            result += Vec3(-1.0f, 0.0f, 0.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        {
+            result += Vec3(1.0f, 0.0f, 0.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        {
+            result += Vec3(0.0f, -1.0f, 0.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        {
+            result += Vec3(0.0f, 1.0f, 0.0f);
+        }
+        return result;
+    }
+
+    Vec3 get_ijkluo_vector()
+    {
+        Vec3 result;
+        if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+        {
+            result += Vec3(0.0f, 0.0f, -1.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+        {
+            result += Vec3(0.0f, 0.0f, 1.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+        {
+            result += Vec3(-1.0f, 0.0f, 0.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+        {
+            result += Vec3(1.0f, 0.0f, 0.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+        {
+            result += Vec3(0.0f, -1.0f, 0.0f);
+        }
+        if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+        {
+            result += Vec3(0.0f, 1.0f, 0.0f);
+        }
+        return result;
+    }
+
 private:
     struct RegisteredKey
     {
@@ -419,57 +479,17 @@ int main()
                     update_mesh = false;
                 }
 
+
+
                 float speed = 1.0f; // metres per second
-                if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-                {
-                    object.position += Vec3::Z(-last_frame_time * speed);
-                }
-                if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-                {
-                    object.position += Vec3::X(-last_frame_time * speed);
-                }
-                if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-                {
-                    object.position += Vec3::Z(last_frame_time * speed);
-                }
-                if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-                {
-                    object.position += Vec3::X(last_frame_time * speed);
-                }
-                if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-                {
-                    object.position += Vec3::Y(-last_frame_time * speed);
-                }
-                if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-                {
-                    object.position += Vec3::Y(last_frame_time * speed);
-                }
+                Vec3 velocity_vector = speed * kb.get_wasdqe_vector();
+                object.position += last_frame_time * velocity_vector;
 
                 float angular_speed = 1.0f; // radians per second
-                if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
-                {
-                    object.orientation = Mat3::RotateX(-angular_speed * last_frame_time) * object.orientation;
-                }
-                if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
-                {
-                    object.orientation = Mat3::RotateX(angular_speed * last_frame_time) * object.orientation;
-                }
-                if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-                {
-                    object.orientation = Mat3::RotateY(-angular_speed * last_frame_time) * object.orientation;
-                }
-                if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-                {
-                    object.orientation = Mat3::RotateY(angular_speed * last_frame_time) * object.orientation;
-                }
-                if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-                {
-                    object.orientation = Mat3::RotateZ(angular_speed * last_frame_time) * object.orientation;
-                }
-                if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-                {
-                    object.orientation = Mat3::RotateZ(-angular_speed * last_frame_time) * object.orientation;
-                }
+                Vec3 angular_velocity = angular_speed * kb.get_ijkluo_vector();
+                angular_velocity = Vec3(angular_velocity.z, angular_velocity.x, -angular_velocity.y);
+
+                object.orientation = Mat3::AxisAngle(last_frame_time * angular_velocity) * object.orientation;
             }
         }
 

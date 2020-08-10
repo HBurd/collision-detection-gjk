@@ -163,6 +163,31 @@ Mat3 Mat3::RotateZ(float angle)
                 0.0f,  0.0f,   1.0f);
 }
 
+Mat3 Mat3::AxisAngle(Vec3 axis_angle)
+{
+    float angle = axis_angle.mag();
+    if (angle != 0.0f)
+    {
+        Vec3 axis = axis_angle * (1.0f / angle);
+
+        float x = axis.x;
+        float y = axis.y;
+        float z = axis.z;
+
+        float c = cosf(angle);
+        float s = sinf(angle);
+        float C = 1.0f - c;
+
+        return Mat3(
+            x*x*C + c,   x*y*C - z*s, x*z*C + y*s,
+            y*x*C + z*s, y*y*C + c,   y*z*C - x*s,
+            z*x*C - y*s, z*y*C + x*s, z*z*C + c);
+    }
+
+    // When the angle is zero, there is no rotation.
+    return Mat3::Identity();
+}
+
 float* Mat3::operator[](std::size_t index)
 {
     return m[index];

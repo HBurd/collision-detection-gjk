@@ -6,6 +6,8 @@
 namespace demo::math
 {
 
+constexpr float pi = 3.14159265358979323846;
+
 struct Vec3
 {
     using real_type = float;
@@ -63,6 +65,8 @@ struct Mat3
     static Mat3 RotateX(float angle);
     static Mat3 RotateY(float angle);
     static Mat3 RotateZ(float angle);
+
+    static Mat3 AxisAngle(Vec3 axis_angle);
 
     float* operator[](std::size_t index);
     const float* operator[](std::size_t index) const;
