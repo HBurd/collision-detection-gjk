@@ -248,6 +248,8 @@ int main()
     bool left_held = false;
     bool right_held = false;
 
+    bool update_mesh = false;
+
     while (!glfwWindowShouldClose(window))
     {
         // Handle input from the input thread
@@ -307,7 +309,19 @@ int main()
                 if (!left_held)
                 {
                     left_held = true;
-                    --selected_object;
+
+                    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+                    {
+                        if (objects.size() != 0)
+                        {
+                            --selected_mesh;
+                            update_mesh = true;
+                        }
+                    }
+                    else
+                    {
+                        --selected_object;
+                    }
                 }
             }
             else
@@ -320,7 +334,16 @@ int main()
                 if (!right_held)
                 {
                     right_held = true;
-                    ++selected_object;
+
+                    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+                    {
+                        ++selected_mesh;
+                        update_mesh = true;
+                    }
+                    else
+                    {
+                        ++selected_object;
+                    }
                 }
             }
             else
@@ -361,7 +384,7 @@ int main()
                 down_held = false;
             }
 
-            // Wrap selected_object
+            // Wrap selected_object and selected_mesh
             if (objects.size() == 0)
             {
                 selected_object = 0;
@@ -375,9 +398,30 @@ int main()
                 selected_object %= objects.size();
             }
 
+            if (meshes.size() == 0)
+            {
+                selected_mesh = 0;
+            }
+            else if (selected_mesh >= static_cast<int>(meshes.size()) || selected_mesh < 0)
+            {
+                while (selected_mesh < 0)
+                {
+                    selected_mesh += meshes.size();
+                }
+                selected_mesh %= meshes.size();
+            }
+
             if (objects.size() != 0)
             {
                 auto& object = objects[selected_object];
+
+                if (update_mesh)
+                {
+                    object.vertices = meshes[selected_mesh].vertices.data();
+                    object.vertex_count = meshes[selected_mesh].vertices.size();
+                    object.render_id = meshes[selected_mesh].render_id;
+                    update_mesh = false;
+                }
 
                 float speed = 1.0f; // metres per second
                 if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
