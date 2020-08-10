@@ -224,7 +224,7 @@ int main()
     // Measure time from the start of the frame
     glfwSetTime(0.0);
 
-    double frame_time_cap = 1.0 / 60.0;
+    double min_frame_time = 1.0 / 60.0;
     double last_frame_time = 0.0f;
 
     bool up_held = false;
@@ -296,11 +296,8 @@ int main()
 
                     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
                     {
-                        if (objects.size() != 0)
-                        {
-                            --selected_mesh;
-                            update_mesh = true;
-                        }
+                        --selected_mesh;
+                        update_mesh = true;
                     }
                     else
                     {
@@ -339,10 +336,11 @@ int main()
             {
                 if (!up_held)
                 {
+                    up_held = true;
+
                     // Only add an object if a mesh has been loaded
                     if (meshes.size() != 0)
                     {
-                        up_held = true;
                         selected_object = objects.size();
 
                         const auto& vertices = meshes[selected_mesh].vertices;
@@ -510,9 +508,9 @@ int main()
         float frame_time = glfwGetTime();
 
         // TODO: This should have some kind of tolerance
-        if (frame_time < frame_time_cap)
+        if (frame_time < min_frame_time)
         {
-            std::this_thread::sleep_for(std::chrono::duration<double>(frame_time_cap - frame_time));
+            std::this_thread::sleep_for(std::chrono::duration<double>(min_frame_time - frame_time));
         }
         last_frame_time = glfwGetTime();
         glfwSetTime(0.0);
