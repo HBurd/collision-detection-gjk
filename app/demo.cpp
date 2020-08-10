@@ -218,22 +218,6 @@ int main()
     // TODO: The abstraction shouldn't deal with GLFW
     GLFWwindow* window = render_ctxt.get_glfw_window();
 
-    {
-        std::vector<Vec3> vertices;
-        std::vector<Vec3> triangles;
-        std::vector<Vec3> normals;
-
-        std::string demo_filename("demo_meshes/monkey_cvx.off");
-
-        demo::mesh::load_off(demo_filename.c_str(), vertices, triangles, normals);
-        if (!triangles.size())
-        {
-            std::cerr << "Unable to load mesh." << std::endl;
-        }
-        meshes.emplace_back(render_ctxt.load_object(triangles.data(), normals.data(), triangles.size()), std::move(demo_filename));
-        meshes.back().vertices = std::move(vertices);
-    }
-
     std::vector<ConvexHullInstance> objects;
     int selected_object = 0;
 
@@ -355,12 +339,16 @@ int main()
             {
                 if (!up_held)
                 {
-                    up_held = true;
-                    selected_object = objects.size();
+                    // Only add an object if a mesh has been loaded
+                    if (meshes.size() != 0)
+                    {
+                        up_held = true;
+                        selected_object = objects.size();
 
-                    const auto& vertices = meshes[selected_mesh].vertices;
+                        const auto& vertices = meshes[selected_mesh].vertices;
 
-                    objects.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
+                        objects.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
+                    }
                 }
             }
             else
