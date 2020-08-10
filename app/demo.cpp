@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <filesystem>
 
 #include <thread>
 #include <atomic>
@@ -16,6 +17,8 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
+namespace fs = std::filesystem;
 
 using namespace demo::math;
 using namespace demo::rendering;
@@ -52,7 +55,6 @@ struct ConvexHullInstance
     {}
 };
 
-// This is for a unit cube
 Vec3 general_support(Vec3 dir, const ConvexHullInstance& data)
 {
     float max_dot = -1000.0f;   // TODO
@@ -110,10 +112,10 @@ void input_thread_func(IOData& io_data)
             std::string filename;
             command_sstream >> filename;
 
-            demo::mesh::load_mesh(filename.c_str(), io_data.vertices_to_load, io_data.triangles_to_load, io_data.normals_to_load);
+            demo::mesh::load_off(filename.c_str(), io_data.vertices_to_load, io_data.triangles_to_load, io_data.normals_to_load);
             if (!io_data.vertices_to_load.size())
             {
-                std::cout << "Unable to load mesh" << std::endl;
+                std::cerr << "Unable to load mesh." << std::endl;
             }
             else
             {
@@ -125,7 +127,6 @@ void input_thread_func(IOData& io_data)
                 {
                     io_data.cv.wait(lock);
                 } while (io_data.load_mesh);
-                std::cout << "mesh loaded" << std::endl;
             }
         }
         else if (word == "list")
@@ -141,6 +142,10 @@ void input_thread_func(IOData& io_data)
                     io_data.cv.wait(lock);
                 } while (io_data.list_mesh);
             }
+            else
+            {
+                std::cerr << "Unknown list option\n";
+            }
         }
         else if (word == "mesh")
         {
@@ -152,6 +157,10 @@ void input_thread_func(IOData& io_data)
             {
                 io_data.cv.wait(lock);
             } while (io_data.select_mesh);
+        }
+        else
+        {
+            std::cerr << "Unknown command.\n";
         }
     }
 }
@@ -177,17 +186,17 @@ int main()
 
         std::string demo_filename("demo_meshes/monkey_cvx.off");
 
-        demo::mesh::load_mesh(demo_filename.c_str(), vertices, triangles, normals);
+        demo::mesh::load_off(demo_filename.c_str(), vertices, triangles, normals);
         if (!triangles.size())
         {
-            std::cout << "Unable to load mesh" << std::endl;
+            std::cerr << "Unable to load mesh." << std::endl;
         }
         meshes.emplace_back(render_ctxt.load_object(triangles.data(), normals.data(), triangles.size()), std::move(demo_filename));
         meshes.back().vertices = std::move(vertices);
     }
 
-    std::vector<ConvexHullInstance> cubes;
-    int selected_cube = 0;
+    std::vector<ConvexHullInstance> objects;
+    int selected_object = 0;
 
     // Measure time from the start of the frame
     glfwSetTime(0.0);
@@ -257,7 +266,7 @@ int main()
                 if (!left_held)
                 {
                     left_held = true;
-                    --selected_cube;
+                    --selected_object;
                 }
             }
             else
@@ -270,7 +279,7 @@ int main()
                 if (!right_held)
                 {
                     right_held = true;
-                    ++selected_cube;
+                    ++selected_object;
                 }
             }
             else
@@ -283,11 +292,11 @@ int main()
                 if (!up_held)
                 {
                     up_held = true;
-                    selected_cube = cubes.size();
+                    selected_object = objects.size();
 
                     const auto& vertices = meshes[selected_mesh].vertices;
 
-                    cubes.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
+                    objects.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
                 }
             }
             else
@@ -300,9 +309,9 @@ int main()
                 if (!down_held)
                 {
                     down_held = true;
-                    if (cubes.size())
+                    if (objects.size())
                     {
-                        cubes.pop_back();
+                        objects.pop_back();
                     }
                 }
             }
@@ -311,98 +320,98 @@ int main()
                 down_held = false;
             }
 
-            // Wrap the selected cube
-            if (cubes.size() == 0)
+            // Wrap selected_object
+            if (objects.size() == 0)
             {
-                selected_cube = 0;
+                selected_object = 0;
             }
-            else if (selected_cube >= static_cast<int>(cubes.size()) || selected_cube < 0)
+            else if (selected_object >= static_cast<int>(objects.size()) || selected_object < 0)
             {
-                while (selected_cube < 0)
+                while (selected_object < 0)
                 {
-                    selected_cube += cubes.size();
+                    selected_object += objects.size();
                 }
-                selected_cube %= cubes.size();
+                selected_object %= objects.size();
             }
 
-            if (cubes.size() != 0)
+            if (objects.size() != 0)
             {
-                auto& cube = cubes[selected_cube];
+                auto& object = objects[selected_object];
 
                 float speed = 1.0f; // metres per second
                 if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
                 {
-                    cube.position += Vec3::Z(-last_frame_time * speed);
+                    object.position += Vec3::Z(-last_frame_time * speed);
                 }
                 if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
                 {
-                    cube.position += Vec3::X(-last_frame_time * speed);
+                    object.position += Vec3::X(-last_frame_time * speed);
                 }
                 if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
                 {
-                    cube.position += Vec3::Z(last_frame_time * speed);
+                    object.position += Vec3::Z(last_frame_time * speed);
                 }
                 if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
                 {
-                    cube.position += Vec3::X(last_frame_time * speed);
+                    object.position += Vec3::X(last_frame_time * speed);
                 }
                 if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
                 {
-                    cube.position += Vec3::Y(-last_frame_time * speed);
+                    object.position += Vec3::Y(-last_frame_time * speed);
                 }
                 if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
                 {
-                    cube.position += Vec3::Y(last_frame_time * speed);
+                    object.position += Vec3::Y(last_frame_time * speed);
                 }
 
                 float angular_speed = 1.0f; // radians per second
                 if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
                 {
-                    cube.orientation = Mat3::RotateX(-angular_speed * last_frame_time) * cube.orientation;
+                    object.orientation = Mat3::RotateX(-angular_speed * last_frame_time) * object.orientation;
                 }
                 if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
                 {
-                    cube.orientation = Mat3::RotateX(angular_speed * last_frame_time) * cube.orientation;
+                    object.orientation = Mat3::RotateX(angular_speed * last_frame_time) * object.orientation;
                 }
                 if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
                 {
-                    cube.orientation = Mat3::RotateY(-angular_speed * last_frame_time) * cube.orientation;
+                    object.orientation = Mat3::RotateY(-angular_speed * last_frame_time) * object.orientation;
                 }
                 if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
                 {
-                    cube.orientation = Mat3::RotateY(angular_speed * last_frame_time) * cube.orientation;
+                    object.orientation = Mat3::RotateY(angular_speed * last_frame_time) * object.orientation;
                 }
                 if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
                 {
-                    cube.orientation = Mat3::RotateZ(angular_speed * last_frame_time) * cube.orientation;
+                    object.orientation = Mat3::RotateZ(angular_speed * last_frame_time) * object.orientation;
                 }
                 if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
                 {
-                    cube.orientation = Mat3::RotateZ(-angular_speed * last_frame_time) * cube.orientation;
+                    object.orientation = Mat3::RotateZ(-angular_speed * last_frame_time) * object.orientation;
                 }
             }
         }
 
-        if (cubes.size())
+        if (objects.size())
         {
-            cubes[selected_cube].colliding = false;
+            objects[selected_object].colliding = false;
         }
 
-        // Check for collisions with the selected cube
-        for (int i = 0; i < static_cast<int>(cubes.size()); ++i)
+        // Check for collisions with the selected object
+        for (int i = 0; i < static_cast<int>(objects.size()); ++i)
         {
-            if (i != selected_cube)
+            if (i != selected_object)
             {
-                auto& cube = cubes[i];
+                auto& object = objects[i];
                 geometry::GjkStats stats;
-                if (geometry::intersect_gjk(general_support, cube, general_support, cubes[selected_cube], 100, &stats))
+                if (geometry::intersect_gjk(general_support, object, general_support, objects[selected_object], 100, &stats))
                 {
-                    cube.colliding = true;
-                    cubes[selected_cube].colliding = true;
+                    object.colliding = true;
+                    objects[selected_object].colliding = true;
                 }
                 else
                 {
-                    cube.colliding = false;
+                    object.colliding = false;
                 }
 
                 if (stats.iteration_count == 100)
@@ -414,10 +423,10 @@ int main()
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (int i = 0; i < static_cast<int>(cubes.size()); ++i)
+        for (int i = 0; i < static_cast<int>(objects.size()); ++i)
         {
-            const auto& cube = cubes[i];
-            render_ctxt.draw_object(cube.render_id, cube.position, cube.orientation.m[0], i == selected_cube, cube.colliding);
+            const auto& object = objects[i];
+            render_ctxt.draw_object(object.render_id, object.position, object.orientation.m[0], i == selected_object, object.colliding);
         }
 
         glfwSwapBuffers(window);
