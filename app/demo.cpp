@@ -112,21 +112,56 @@ void input_thread_func(IOData& io_data)
             std::string filename;
             command_sstream >> filename;
 
-            demo::mesh::load_off(filename.c_str(), io_data.vertices_to_load, io_data.triangles_to_load, io_data.normals_to_load);
-            if (!io_data.vertices_to_load.size())
+            if (filename == "")
             {
-                std::cerr << "Unable to load mesh." << std::endl;
+                std::cerr << "The load command must be supplied with a file name.\n";
+                continue;
+            }
+
+            // Check if the filename is a directory
+            fs::path path(filename);
+            if (fs::is_directory(path))
+            {
+                std::cout << "Loading meshes in directory " << path << ":\n";
+
+                for (const auto& p : fs::directory_iterator(path))
+                {
+                    demo::mesh::load_off(p.path().c_str(), io_data.vertices_to_load, io_data.triangles_to_load, io_data.normals_to_load);
+                    if (!io_data.vertices_to_load.size())
+                    {
+                        std::cerr << "Unable to load mesh " << p.path() << ".\n";
+                    }
+                    else
+                    {
+                        io_data.mesh_filename = p.path();
+
+                        std::unique_lock lock(io_data.mutex);
+                        io_data.load_mesh = true;
+                        do
+                        {
+                            io_data.cv.wait(lock);
+                        } while (io_data.load_mesh);
+                    }
+                }
             }
             else
             {
-                io_data.mesh_filename = std::move(filename);
-
-                std::unique_lock lock(io_data.mutex);
-                io_data.load_mesh = true;
-                do
+                demo::mesh::load_off(filename.c_str(), io_data.vertices_to_load, io_data.triangles_to_load, io_data.normals_to_load);
+                if (!io_data.vertices_to_load.size())
                 {
-                    io_data.cv.wait(lock);
-                } while (io_data.load_mesh);
+                    std::cerr << "Unable to load mesh: " << filename << ".\n";
+                }
+                else
+                {
+                    io_data.mesh_filename = std::move(filename);
+
+                    std::unique_lock lock(io_data.mutex);
+                    io_data.load_mesh = true;
+                    do
+                    {
+                        io_data.cv.wait(lock);
+                    } while (io_data.load_mesh);
+                }
             }
         }
         else if (word == "list")
@@ -157,6 +192,10 @@ void input_thread_func(IOData& io_data)
             {
                 io_data.cv.wait(lock);
             } while (io_data.select_mesh);
+        }
+        else if (word == "")
+        {
+            // Do nothing
         }
         else
         {
@@ -224,6 +263,8 @@ int main()
                     io_data.triangles_to_load.size()),
                 std::move(io_data.mesh_filename));
             meshes.back().vertices = std::move(io_data.vertices_to_load);
+
+            std::cout << "Loaded mesh " << meshes.back().filename << ".\n";
 
             io_data.load_mesh = false;
             io_data.cv.notify_one();
