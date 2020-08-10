@@ -204,6 +204,56 @@ void input_thread_func(IOData& io_data)
     }
 }
 
+class KbInputHandler
+{
+public:
+    KbInputHandler(GLFWwindow* window_)
+        : window(window_)
+    {}
+
+    void register_action(int glfw_key_code, bool is_down_event, std::function<void(GLFWwindow*)>&& action)
+    {
+        actions.emplace_back(is_down_event, glfw_key_code, std::move(action));
+    }
+
+    void do_actions()
+    {
+        for (auto& action : actions)
+        {
+            if (glfwGetKey(window, action.glfw_key_code) == GLFW_PRESS)
+            {
+                if (!(action.is_down_event && action.is_held))
+                {
+                    action.action(window);
+                }
+
+                action.is_held = true;
+            }
+            else
+            {
+                action.is_held = false;
+            }
+        }
+    }
+
+private:
+    struct RegisteredKey
+    {
+        bool is_down_event;
+        bool is_held = false;
+
+        int glfw_key_code;
+        std::function<void(GLFWwindow*)> action;
+
+        RegisteredKey(bool is_down_event_, int key_code, std::function<void(GLFWwindow*)>&& action_)
+            : is_down_event(is_down_event_), glfw_key_code(key_code), action(std::move(action_))
+        {}
+    };
+
+    GLFWwindow* window;
+    std::vector<RegisteredKey> actions;
+};
+
 int main()
 {
     std::vector<Mesh> meshes;
@@ -227,12 +277,52 @@ int main()
     double min_frame_time = 1.0 / 60.0;
     double last_frame_time = 0.0f;
 
-    bool up_held = false;
-    bool down_held = false;
-    bool left_held = false;
-    bool right_held = false;
+    KbInputHandler kb(window);
 
     bool update_mesh = false;
+
+    kb.register_action(GLFW_KEY_LEFT, true, [&selected_object, &selected_mesh, &update_mesh] (GLFWwindow* window) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        {
+            --selected_mesh;
+            update_mesh = true;
+        }
+        else
+        {
+            --selected_object;
+        }
+    });
+
+    kb.register_action(GLFW_KEY_RIGHT, true, [&selected_object, &selected_mesh, &update_mesh] (GLFWwindow* window) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        {
+            ++selected_mesh;
+            update_mesh = true;
+        }
+        else
+        {
+            ++selected_object;
+        }
+    });
+
+    kb.register_action(GLFW_KEY_UP, true, [&objects, &selected_object, &meshes, selected_mesh] (GLFWwindow*) {
+        // Only add an object if a mesh has been loaded
+        if (meshes.size() != 0)
+        {
+            selected_object = objects.size();
+
+            const auto& vertices = meshes[selected_mesh].vertices;
+
+            objects.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
+        }
+    });
+
+    kb.register_action(GLFW_KEY_DOWN, true, [&objects] (GLFWwindow*) {
+        if (objects.size())
+        {
+            objects.pop_back();
+        }
+    });
 
     while (!glfwWindowShouldClose(window))
     {
@@ -288,87 +378,7 @@ int main()
 
         // Handle keyboard input
         {
-            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-            {
-                if (!left_held)
-                {
-                    left_held = true;
-
-                    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-                    {
-                        --selected_mesh;
-                        update_mesh = true;
-                    }
-                    else
-                    {
-                        --selected_object;
-                    }
-                }
-            }
-            else
-            {
-                left_held = false;
-            }
-
-            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-            {
-                if (!right_held)
-                {
-                    right_held = true;
-
-                    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-                    {
-                        ++selected_mesh;
-                        update_mesh = true;
-                    }
-                    else
-                    {
-                        ++selected_object;
-                    }
-                }
-            }
-            else
-            {
-                right_held = false;
-            }
-
-            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-            {
-                if (!up_held)
-                {
-                    up_held = true;
-
-                    // Only add an object if a mesh has been loaded
-                    if (meshes.size() != 0)
-                    {
-                        selected_object = objects.size();
-
-                        const auto& vertices = meshes[selected_mesh].vertices;
-
-                        objects.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
-                    }
-                }
-            }
-            else
-            {
-                up_held = false;
-            }
-
-            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-            {
-                if (!down_held)
-                {
-                    down_held = true;
-                    if (objects.size())
-                    {
-                        objects.pop_back();
-                    }
-                }
-            }
-            else
-            {
-                down_held = false;
-            }
+            kb.do_actions();
 
             // Wrap selected_object and selected_mesh
             if (objects.size() == 0)
