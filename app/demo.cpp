@@ -2,6 +2,8 @@
 #include "math.hpp"
 #include "rendering.hpp"
 #include "load_mesh.hpp"
+#include "kb_input.hpp"
+#include "convex_hull.hpp"
 
 #include <array>
 #include <thread>    // sleep_for needed to enforce framerate
@@ -34,45 +36,6 @@ struct Mesh
     {}
 };
 
-struct ConvexHullInstance
-{
-    Vec3 position;
-    Mat3 orientation;
-
-    bool colliding = false;
-
-    // A reference to a Mesh is not being used here because the meshes
-    // exist in a vector so do not have stable references. The actual
-    // vertex data does have a stable reference since it is never modified.
-    // This also has the benefit of avoiding a double inderection (i.e.
-    // the vertices don't have to be accessed through a Mesh reference).
-    const Vec3* vertices;
-    std::size_t vertex_count;
-    std::size_t render_id;
-
-    ConvexHullInstance(Vec3 pos, Mat3 orient, const Vec3* vertices_, std::size_t vertex_count_, std::size_t render_id_)
-        : position(pos), orientation(orient), vertices(vertices_), vertex_count(vertex_count_), render_id(render_id_)
-    {}
-};
-
-Vec3 general_support(Vec3 dir, const ConvexHullInstance& data)
-{
-    float max_dot = -1000.0f;   // TODO
-    Vec3 max_dot_v = Vec3(0.0f, 0.0f, 0.0f);
-
-    for (std::size_t i = 0; i < data.vertex_count; ++i)
-    {
-        Vec3 v = data.position + data.orientation * data.vertices[i];
-        if (dot(dir, v) > max_dot)
-        {
-            max_dot = dot(dir, v);
-            max_dot_v = v;
-        }
-    }
-
-    return max_dot_v;
-}
-
 struct IOData
 {
     std::atomic_bool load_mesh = false;
@@ -87,116 +50,6 @@ struct IOData
 
     std::mutex mutex;
     std::condition_variable cv;
-};
-
-class KbInputHandler
-{
-public:
-    KbInputHandler(GLFWwindow* window_)
-        : window(window_)
-    {}
-
-    void register_action(int glfw_key_code, bool is_down_event, std::function<void(GLFWwindow*)>&& action)
-    {
-        actions.emplace_back(is_down_event, glfw_key_code, std::move(action));
-    }
-
-    void do_actions()
-    {
-        for (auto& action : actions)
-        {
-            if (glfwGetKey(window, action.glfw_key_code) == GLFW_PRESS)
-            {
-                if (!(action.is_down_event && action.is_held))
-                {
-                    action.action(window);
-                }
-
-                action.is_held = true;
-            }
-            else
-            {
-                action.is_held = false;
-            }
-        }
-    }
-
-    Vec3 get_wasdqe_vector()
-    {
-        Vec3 result;
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        {
-            result += Vec3(0.0f, 0.0f, -1.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        {
-            result += Vec3(0.0f, 0.0f, 1.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        {
-            result += Vec3(-1.0f, 0.0f, 0.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        {
-            result += Vec3(1.0f, 0.0f, 0.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        {
-            result += Vec3(0.0f, -1.0f, 0.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        {
-            result += Vec3(0.0f, 1.0f, 0.0f);
-        }
-        return result;
-    }
-
-    Vec3 get_ijkluo_vector()
-    {
-        Vec3 result;
-        if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
-        {
-            result += Vec3(0.0f, 0.0f, -1.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
-        {
-            result += Vec3(0.0f, 0.0f, 1.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-        {
-            result += Vec3(-1.0f, 0.0f, 0.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-        {
-            result += Vec3(1.0f, 0.0f, 0.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-        {
-            result += Vec3(0.0f, -1.0f, 0.0f);
-        }
-        if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-        {
-            result += Vec3(0.0f, 1.0f, 0.0f);
-        }
-        return result;
-    }
-
-private:
-    struct RegisteredKey
-    {
-        bool is_down_event;
-        bool is_held = false;
-
-        int glfw_key_code;
-        std::function<void(GLFWwindow*)> action;
-
-        RegisteredKey(bool is_down_event_, int key_code, std::function<void(GLFWwindow*)>&& action_)
-            : is_down_event(is_down_event_), glfw_key_code(key_code), action(std::move(action_))
-        {}
-    };
-
-    GLFWwindow* window;
-    std::vector<RegisteredKey> actions;
 };
 
 void input_thread_func(IOData& io_data)

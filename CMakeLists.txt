@@ -17,7 +17,7 @@ if(ENABLE_COVERAGE)
     append_coverage_compiler_flags()
 endif()
 
-add_executable(demo app/demo.cpp app/math.cpp app/rendering.cpp app/load_mesh.cpp app/mesh_tools.cpp)
+add_executable(demo app/demo.cpp app/math.cpp app/rendering.cpp app/load_mesh.cpp app/mesh_tools.cpp app/kb_input.cpp app/convex_hull.cpp)
 add_executable(test_math app/test_math.cpp app/math.cpp)
 add_executable(test_load_mesh app/test_load_mesh.cpp app/load_mesh.cpp app/math.cpp app/mesh_tools.cpp)
 add_executable(test_gjk app/test_gjk.cpp app/math.cpp)
