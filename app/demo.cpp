@@ -83,79 +83,11 @@ struct IOData
     std::atomic_bool select_mesh = false;
     std::size_t selected_mesh = 0;
 
+    std::atomic_bool quit = false;
+
     std::mutex mutex;
     std::condition_variable cv;
 };
-
-void input_thread_func(IOData& io_data)
-{
-    bool do_input = true;
-    while (do_input)
-    {
-        // Wait for previous command to finish
-        {
-            std::unique_lock lock(io_data.mutex);
-            while (io_data.load_mesh || io_data.list_mesh || io_data.select_mesh)
-            {
-                io_data.cv.wait(lock);
-            }
-        }
-        std::cout << "> ";
-
-        std::string command;
-        std::getline(std::cin, command);
-
-        std::stringstream command_sstream(command);
-
-        std::string word;
-        command_sstream >> word;
-
-        if (word == "load")
-        {
-            // Command to load mesh
-
-            std::string filename;
-            command_sstream >> filename;
-
-            if (filename == "")
-            {
-                std::cerr << "The load command must be supplied with a file name.\n";
-            }
-            else
-            {
-                io_data.mesh_filename = std::move(filename);
-            }
-
-            io_data.load_mesh = true;
-        }
-        else if (word == "list")
-        {
-            command_sstream >> word;
-
-            if (word == "mesh")
-            {
-                io_data.list_mesh = true;
-            }
-            else
-            {
-                std::cerr << "Unknown list option\n";
-            }
-        }
-        else if (word == "mesh")
-        {
-            command_sstream >> io_data.selected_mesh;
-            io_data.select_mesh = true;
-        }
-        else if (word == "")
-        {
-            // Do nothing
-        }
-        else
-        {
-            std::cerr << "Unknown command.\n";
-        }
-    }
-}
 
 class KbInputHandler
 {
@@ -267,6 +199,88 @@ private:
     std::vector<RegisteredKey> actions;
 };
 
+void input_thread_func(IOData& io_data)
+{
+    {
+        std::unique_lock lock(io_data.mutex);
+        while ((io_data.load_mesh || io_data.list_mesh || io_data.select_mesh) && !io_data.quit)
+        {
+            io_data.cv.wait(lock);
+        }
+    }
+
+    while (!io_data.quit)
+    {
+        std::cout << "> ";
+
+        std::string command;
+        std::getline(std::cin, command);
+
+        std::stringstream command_sstream(command);
+
+        std::string word;
+        command_sstream >> word;
+
+        if (word == "load")
+        {
+            // Command to load mesh
+
+            std::string filename;
+            command_sstream >> filename;
+
+            if (filename == "")
+            {
+                std::cerr << "The load command must be supplied with a file name.\n";
+            }
+            else
+            {
+                io_data.mesh_filename = std::move(filename);
+            }
+
+            io_data.load_mesh = true;
+        }
+        else if (word == "list")
+        {
+            command_sstream >> word;
+
+            if (word == "mesh")
+            {
+                io_data.list_mesh = true;
+            }
+            else
+            {
+                std::cerr << "Unknown list option\n";
+            }
+        }
+        else if (word == "mesh")
+        {
+            command_sstream >> io_data.selected_mesh;
+            io_data.select_mesh = true;
+        }
+        else if (word == "exit" || word == "quit")
+        {
+            io_data.quit = true;
+        }
+        else if (word == "")
+        {
+            // Do nothing
+        }
+        else
+        {
+            std::cerr << "Unknown command.\n";
+        }
+
+        // Wait for previous command to finish
+        {
+            std::unique_lock lock(io_data.mutex);
+            while ((io_data.load_mesh || io_data.list_mesh || io_data.select_mesh) && !io_data.quit)
+            {
+                io_data.cv.wait(lock);
+            }
+        }
+    }
+}
+
 int main()
 {
     std::vector<Mesh> meshes;
@@ -340,7 +354,7 @@ int main()
         }
     });
 
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window) && !io_data.quit)
     {
         // Handle input from the input thread
         if (io_data.load_mesh)
@@ -473,8 +487,6 @@ int main()
                     update_mesh = false;
                 }
 
-
-
                 float speed = 1.0f; // metres per second
                 Vec3 velocity_vector = speed * kb.get_wasdqe_vector();
                 object.position += last_frame_time * velocity_vector;
@@ -541,6 +553,10 @@ int main()
 
         glfwPollEvents();
     }
+
+    // The input thread can only be detached here, since it will be blocked on standard input
+    // (unless the program was exited from the console).
+    input_thread.detach();
 
     return 0;
 }
