@@ -321,7 +321,7 @@ int main()
         }
     });
 
-    kb.register_action(GLFW_KEY_UP, true, [&objects, &selected_object, &meshes, selected_mesh] (GLFWwindow*) {
+    kb.register_action(GLFW_KEY_UP, true, [&objects, &selected_object, &meshes, &selected_mesh] (GLFWwindow*) {
         // Only add an object if a mesh has been loaded
         if (meshes.size() != 0)
         {
