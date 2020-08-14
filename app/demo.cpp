@@ -290,9 +290,11 @@ int main()
         }
     });
 
-    kb.register_action(GLFW_KEY_DOWN, true, [&objects] (GLFWwindow*) {
+    kb.register_action(GLFW_KEY_DOWN, true, [&objects, &selected_object] (GLFWwindow*) {
         if (objects.size())
         {
+            // Remove the selected object, and replace it with the object at the back.
+            objects[selected_object] = objects.back();
             objects.pop_back();
         }
     });
