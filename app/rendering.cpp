@@ -32,16 +32,18 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
 
     const char* vshader_string =
         "#version 330 core\n"
-        "layout (location = 0) in vec3 pos;\n"
+        "layout (location = 0) in vec3 vpos;\n"
         "layout (location = 1) in vec3 normal;\n"
         "uniform mat4 perspective;\n"
         "uniform mat3 orientation;\n"
         "uniform vec3 position;\n"
+        "uniform vec3 global_position;\n"
+        "uniform mat3 global_orientation;\n"
         "out vec3 camera_relative_normal;\n"
         "out vec3 camera_relative_position;\n"
         "void main() {\n"
-        "    camera_relative_normal = orientation * normal;\n"
-        "    camera_relative_position = position + orientation * pos;\n"
+        "    camera_relative_normal = global_orientation * orientation * normal;\n"
+        "    camera_relative_position = global_position + global_orientation * (position + orientation * vpos);\n"
         "    gl_Position = perspective * vec4(camera_relative_position, 1.0f);\n"
         "}\n";
     const char* fshader_string =
@@ -52,7 +54,7 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
         "out vec4 colour;\n"
         "void main() {\n"
         "    float angular_component = -dot(normalize(camera_relative_position), normalize(camera_relative_normal));\n"
-        "    float intensity = 0.5f + 0.5f * angular_component;"
+        "    float intensity = 0.5f + 0.5f * angular_component;\n"
         "    colour = vec4(intensity * colour_mask, 1.0f);\n"
         "}\n";
 
@@ -103,7 +105,7 @@ std::size_t RenderContext::load_object(const Vec3* positions, const Vec3* normal
     return object_id;
 }
 
-void RenderContext::draw_object(std::size_t object_id, const Vec3& position, const float* orientation, bool selected, bool colliding)
+void RenderContext::draw_object(std::size_t object_id, const Vec3& position, const float* orientation, bool selected, bool colliding, const Vec3& global_position, const float* global_orientation)
 {
     glUseProgram(shader_program.program);
 
@@ -131,6 +133,12 @@ void RenderContext::draw_object(std::size_t object_id, const Vec3& position, con
         colour_mask.x = 1.0f;
     }
     glUniform3f(location, colour_mask.x, colour_mask.y, colour_mask.z);
+
+    location = glGetUniformLocation(shader_program.program, "global_position");
+    glUniform3f(location, global_position.x, global_position.y, global_position.z);
+
+    location = glGetUniformLocation(shader_program.program, "global_orientation");
+    glUniformMatrix3fv(location, 1, GL_TRUE, global_orientation);
 
     glDrawArrays(GL_TRIANGLES, 0, object.num_vertices);
 }

@@ -74,6 +74,8 @@ struct Mat3
     Vec3 row(unsigned int n) const;
     Vec3 col(unsigned int n) const;
 
+    Mat3 transpose() const;
+
     void set_row(unsigned int n, const Vec3& r);
     void set_col(unsigned int n, const Vec3& c);
 

@@ -233,6 +233,7 @@ int main()
 
     InputCommands io_data;
 
+    // Issue a command to load the demo_meshes folder
     io_data.mesh_filename = "demo_meshes";
     io_data.load_mesh = true;
 
@@ -245,6 +246,9 @@ int main()
 
     std::vector<ConvexHullInstance> objects;
     int selected_object = 0;
+
+    Vec3 global_position(0.0f, 0.0f, -10.0f);
+    Mat3 global_orientation;
 
     KbInputHandler kb(window);
 
@@ -282,7 +286,7 @@ int main()
 
             const auto& vertices = meshes[selected_mesh].vertices;
 
-            objects.emplace_back(Vec3::Z(-2.0f), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
+            objects.emplace_back(Vec3(), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
         }
     });
 
@@ -344,15 +348,29 @@ int main()
                 update_mesh = false;
             }
 
+            bool shift_pressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+
             float speed = 1.0f; // metres per second
             Vec3 velocity_vector = speed * kb.get_wasdqe_vector();
+
+            // Rotate the applied velocity into the camera reference frame
+            velocity_vector = global_orientation.transpose() * velocity_vector;
             object.position += last_frame_time * velocity_vector;
 
             float angular_speed = 1.0f; // radians per second
             Vec3 angular_velocity = angular_speed * kb.get_ijkluo_vector();
             angular_velocity = Vec3(angular_velocity.z, angular_velocity.x, -angular_velocity.y);
 
-            object.orientation = Mat3::AxisAngle(last_frame_time * angular_velocity) * object.orientation;
+            if (shift_pressed)
+            {
+                global_orientation = Mat3::AxisAngle(last_frame_time * angular_velocity) * global_orientation;
+            }
+            else
+            {
+                // Rotate the applied angular velocity into the camera reference frame
+                angular_velocity = global_orientation.transpose() * angular_velocity;
+                object.orientation = Mat3::AxisAngle(last_frame_time * angular_velocity) * object.orientation;
+            }
         }
 
         if (objects.size())
@@ -379,7 +397,7 @@ int main()
 
                 if (stats.iteration_count == 100)
                 {
-                    std::cout << "GJK did not terminate after 100 iterations" << std::endl;
+                    std::cerr << "GJK did not terminate after 100 iterations" << std::endl;
                 }
             }
         }
@@ -389,7 +407,7 @@ int main()
         for (int i = 0; i < static_cast<int>(objects.size()); ++i)
         {
             const auto& object = objects[i];
-            render_ctxt.draw_object(object.render_id, object.position, object.orientation.m[0], i == selected_object, object.colliding);
+            render_ctxt.draw_object(object.render_id, object.position, object.orientation.m[0], i == selected_object, object.colliding, global_position, global_orientation.m[0]);
         }
 
         glfwSwapBuffers(window);
@@ -399,7 +417,9 @@ int main()
 
         float frame_time = glfwGetTime();
 
-        // TODO: This should have some kind of tolerance
+        // TODO: This should have some kind of tolerance, so that
+        // being slightly too fast doesn't trigger sleeping (which
+        // probably doesn't support fine-enough time resolutions).
         if (frame_time < min_frame_time)
         {
             std::this_thread::sleep_for(std::chrono::duration<double>(min_frame_time - frame_time));

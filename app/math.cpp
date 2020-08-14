@@ -210,6 +210,13 @@ Vec3 Mat3::col(unsigned int n) const
     return Vec3(m[0][n], m[1][n], m[2][n]);
 }
 
+Mat3 Mat3::transpose() const
+{
+    return Mat3(m[0][0], m[1][0], m[2][0],
+                m[0][1], m[1][1], m[2][1],
+                m[0][2], m[1][2], m[2][2]);
+}
+
 void Mat3::set_row(unsigned int n, const Vec3& r)
 {
     assert(n <= 2);
