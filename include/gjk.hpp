@@ -7,18 +7,6 @@
 
 namespace geometry
 {
-    template <class Vec3, class Data>
-    using SupportFn = Vec3 (*) (Vec3 dir, const Data& data);
-
-    // This extracts the return and parameter types from a support function
-    template <class Vec3, class Data>
-    struct SupportFnInfo
-    {
-        using Vec3Type = Vec3;
-        using DataType = Data;
-        SupportFnInfo(SupportFn<Vec3, Data>) {}
-    };
-
     struct GjkStats
     {
         std::size_t iteration_count;
@@ -377,16 +365,13 @@ namespace geometry
     }
 
     // TODO: are we treating resting contact as an intersection?
-    template <auto Support1, auto Support2, class Info1 = decltype(SupportFnInfo(Support1)), class Info2 = decltype(SupportFnInfo(Support2))>
+    template <class Vec3>
     bool intersect_gjk(
-        typename Info1::DataType data1,
-        typename Info2::DataType data2,
+        std::function<Vec3(const Vec3&)> support1,
+        std::function<Vec3(const Vec3&)> support2,
         const std::size_t max_iterations = 100,
         GjkStats* stats = nullptr)
     {
-        static_assert(std::is_same<typename Info1::Vec3Type, typename Info2::Vec3Type>::value, "The two support functions must use the same vector type.");
-
-        using Vec3 = typename Info1::Vec3Type;
         using Real = decltype(Vec3::x);
 
         // Starting direction is arbitrary
@@ -399,7 +384,7 @@ namespace geometry
         std::size_t iteration_count = 0;
         do
         {
-            Vec3 point = Support1(d, data1) - Support2(-d, data2);
+            Vec3 point = support1(d) - support2(-d);
             if (dot(point, d) < Real(0))
             {
                 // Furthest point along d is not past the origin, so there is no intersection

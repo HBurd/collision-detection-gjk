@@ -386,7 +386,10 @@ int main()
             {
                 auto& object = objects[i];
                 geometry::GjkStats stats;
-                if (geometry::intersect_gjk<general_support, general_support>(object, objects[selected_object], 100, &stats))
+                if (geometry::intersect_gjk<Vec3>(
+                    [&object](const Vec3& d) { return general_support(d, object); },
+                    [&obj = objects[selected_object]](const Vec3& d) { return general_support(d, obj); },
+                    100, &stats))
                 {
                     object.colliding = true;
                     objects[selected_object].colliding = true;
