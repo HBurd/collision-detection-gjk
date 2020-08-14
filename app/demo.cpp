@@ -2,7 +2,7 @@
 #include "math.hpp"
 #include "rendering.hpp"
 #include "load_mesh.hpp"
-#include "kb_input.hpp"
+#include "input.hpp"
 #include "convex_hull.hpp"
 
 #include <array>
@@ -231,7 +231,12 @@ void input_thread_func(InputCommands& io_data)
 int modulo(int a, unsigned int b)
 {
     // % Returns remainder, so it has to be made positive for when a is negative.
-    return (a % b + b) % b;
+    if (b)
+    {
+        return (a % b + b) % b;
+    }
+    
+    return 0;
 }
 
 int main()
@@ -260,11 +265,11 @@ int main()
 
     // This handles key events. In particular, it catches the event when the key is pressed down,
     // rather than just detecting if the key is pressed.
-    KbInputHandler kb(window);
+    InputHandler input(window);
 
     // Register the events for the arrow keys (which only trigger as they are pressed).
-    kb.register_action(GLFW_KEY_LEFT, true, [&selected_object, &objects, &selected_mesh, &meshes] (GLFWwindow* window) {
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    input.register_action(GLFW_KEY_LEFT, true, [&selected_object, &objects, &selected_mesh, &meshes, &input] {
+        if (input.get_shift())
         {
             selected_mesh = modulo(selected_mesh - 1, meshes.size());
         }
@@ -274,8 +279,8 @@ int main()
         }
     });
 
-    kb.register_action(GLFW_KEY_RIGHT, true, [&selected_object, &objects, &selected_mesh, &meshes] (GLFWwindow* window) {
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    input.register_action(GLFW_KEY_RIGHT, true, [&selected_object, &objects, &selected_mesh, &meshes, &input] {
+        if (input.get_shift())
         {
             selected_mesh = modulo(selected_mesh + 1, meshes.size());
         }
@@ -285,7 +290,7 @@ int main()
         }
     });
 
-    kb.register_action(GLFW_KEY_UP, true, [&objects, &selected_object, &meshes, &selected_mesh] (GLFWwindow*) {
+    input.register_action(GLFW_KEY_UP, true, [&objects, &selected_object, &meshes, &selected_mesh] {
         // Only add an object if a mesh has been loaded
         if (meshes.size() != 0)
         {
@@ -297,7 +302,7 @@ int main()
         }
     });
 
-    kb.register_action(GLFW_KEY_DOWN, true, [&objects, &selected_object] (GLFWwindow*) {
+    input.register_action(GLFW_KEY_DOWN, true, [&objects, &selected_object] {
         if (objects.size())
         {
             // Remove the selected object, and replace it with the object at the back.
@@ -312,11 +317,11 @@ int main()
     // Measure time from the start of the frame
     glfwSetTime(0.0);
 
-    while (!glfwWindowShouldClose(window) && !io_data.quit)
+    while (!input.window_should_close() && !io_data.quit)
     {
         io_data.handle_commands(render_ctxt, meshes, selected_mesh);
 
-        kb.do_actions();
+        input.do_actions();
 
         if (objects.size() != 0)
         {
@@ -330,7 +335,7 @@ int main()
             bool shift_pressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
 
             float speed = 1.0f; // metres per second
-            Vec3 velocity_vector = speed * kb.get_wasdqe_vector();
+            Vec3 velocity_vector = speed * input.get_wasdqe_vector();
 
             // Rotate the applied velocity into the camera reference frame
             velocity_vector = global_orientation.transpose() * velocity_vector;
@@ -338,7 +343,7 @@ int main()
             object.position += last_frame_time * velocity_vector;
 
             float angular_speed = 1.0f; // radians per second
-            Vec3 angular_velocity = angular_speed * kb.get_ijkluo_vector();
+            Vec3 angular_velocity = angular_speed * input.get_ijkluo_vector();
             angular_velocity = Vec3(angular_velocity.z, angular_velocity.x, -angular_velocity.y);
 
             if (shift_pressed)
@@ -407,7 +412,7 @@ int main()
         last_frame_time = glfwGetTime();
         glfwSetTime(0.0);
 
-        glfwPollEvents();
+        input.poll_events();
     }
 
     // The input thread can only be detached here, since it will be blocked on standard input

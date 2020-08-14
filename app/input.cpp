@@ -1,6 +1,6 @@
-#include "kb_input.hpp"
+#include "input.hpp"
 
-KbInputHandler::KbInputHandler(GLFWwindow* window_)
+InputHandler::InputHandler(GLFWwindow* window_)
     : window(window_)
 {}
 
@@ -8,13 +8,18 @@ KbInputHandler::KbInputHandler(GLFWwindow* window_)
 // glfw_key_code is the key that triggers the action
 // is_down_event is true if the event happens only as the key goes down, false if it always happens when the key is down
 // action is the function that is called in these cases
-void KbInputHandler::register_action(int glfw_key_code, bool is_down_event, std::function<void(GLFWwindow*)>&& action)
+void InputHandler::register_action(int glfw_key_code, bool is_down_event, std::function<void()>&& action)
 {
     actions.emplace_back(is_down_event, glfw_key_code, std::move(action));
 }
 
+void InputHandler::poll_events()
+{
+    glfwPollEvents();
+}
+
 // Executes every registered action, if the corresponding key is pressed or held
-void KbInputHandler::do_actions()
+void InputHandler::do_actions()
 {
     for (auto& action : actions)
     {
@@ -22,7 +27,7 @@ void KbInputHandler::do_actions()
         {
             if (!(action.is_down_event && action.is_held))
             {
-                action.action(window);
+                action.action();
             }
 
             action.is_held = true;
@@ -36,7 +41,7 @@ void KbInputHandler::do_actions()
 
 // Returns a vector corresponding to the W, A, S, D, Q and E keys.
 // W/S are -/+z, A/D are -/+x and Q/E are -/+y
-demo::math::Vec3 KbInputHandler::get_wasdqe_vector()
+demo::math::Vec3 InputHandler::get_wasdqe_vector() const
 {
     demo::math::Vec3 result;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -68,7 +73,7 @@ demo::math::Vec3 KbInputHandler::get_wasdqe_vector()
 
 // Returns a vector corresponding to the I, J, K, L, U and O keys.
 // I/K are -/+z, J/L are -/+x and U/O are -/+y
-demo::math::Vec3 KbInputHandler::get_ijkluo_vector()
+demo::math::Vec3 InputHandler::get_ijkluo_vector() const
 {
     demo::math::Vec3 result;
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
@@ -98,6 +103,18 @@ demo::math::Vec3 KbInputHandler::get_ijkluo_vector()
     return result;
 }
 
-KbInputHandler::RegisteredKey::RegisteredKey(bool is_down_event_, int key_code, std::function<void(GLFWwindow*)>&& action_)
+// Returns true iff left shift is held
+bool InputHandler::get_shift() const
+{
+    return glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+}
+
+// Returns true iff the window should close
+bool InputHandler::window_should_close() const
+{
+    return glfwWindowShouldClose(window) == GLFW_TRUE;
+}
+
+InputHandler::RegisteredKey::RegisteredKey(bool is_down_event_, int key_code, std::function<void()>&& action_)
     : is_down_event(is_down_event_), glfw_key_code(key_code), action(std::move(action_))
 {}
