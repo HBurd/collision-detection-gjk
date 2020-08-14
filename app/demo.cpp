@@ -355,6 +355,7 @@ int main()
 
             // Rotate the applied velocity into the camera reference frame
             velocity_vector = global_orientation.transpose() * velocity_vector;
+
             object.position += last_frame_time * velocity_vector;
 
             float angular_speed = 1.0f; // radians per second
@@ -385,7 +386,7 @@ int main()
             {
                 auto& object = objects[i];
                 geometry::GjkStats stats;
-                if (geometry::intersect_gjk(general_support, object, general_support, objects[selected_object], 100, &stats))
+                if (geometry::intersect_gjk<general_support, general_support>(object, objects[selected_object], 100, &stats))
                 {
                     object.colliding = true;
                     objects[selected_object].colliding = true;
