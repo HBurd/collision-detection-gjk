@@ -226,6 +226,14 @@ void input_thread_func(InputCommands& io_data)
     }
 }
 
+// Returns the unique representative of the a mod b equivalence class in the range [0, b).
+// or returns zero if b is zero
+int modulo(int a, unsigned int b)
+{
+    // % Returns remainder, so it has to be made positive for when a is negative.
+    return (a % b + b) % b;
+}
+
 int main()
 {
     std::vector<Mesh> meshes;
@@ -250,31 +258,30 @@ int main()
     Vec3 global_position(0.0f, 0.0f, -10.0f);
     Mat3 global_orientation;
 
+    // This handles key events. In particular, it catches the event when the key is pressed down,
+    // rather than just detecting if the key is pressed.
     KbInputHandler kb(window);
 
-    bool update_mesh = false;
-
-    kb.register_action(GLFW_KEY_LEFT, true, [&selected_object, &selected_mesh, &update_mesh] (GLFWwindow* window) {
+    // Register the events for the arrow keys (which only trigger as they are pressed).
+    kb.register_action(GLFW_KEY_LEFT, true, [&selected_object, &objects, &selected_mesh, &meshes] (GLFWwindow* window) {
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         {
-            --selected_mesh;
-            update_mesh = true;
+            selected_mesh = modulo(selected_mesh - 1, meshes.size());
         }
         else
         {
-            --selected_object;
+            selected_object = modulo(selected_object - 1, objects.size());
         }
     });
 
-    kb.register_action(GLFW_KEY_RIGHT, true, [&selected_object, &selected_mesh, &update_mesh] (GLFWwindow* window) {
+    kb.register_action(GLFW_KEY_RIGHT, true, [&selected_object, &objects, &selected_mesh, &meshes] (GLFWwindow* window) {
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         {
-            ++selected_mesh;
-            update_mesh = true;
+            selected_mesh = modulo(selected_mesh + 1, meshes.size());
         }
         else
         {
-            ++selected_object;
+            selected_object = modulo(selected_object + 1, objects.size());
         }
     });
 
@@ -311,44 +318,14 @@ int main()
 
         kb.do_actions();
 
-        // Wrap selected_object and selected_mesh
-        if (objects.size() == 0)
-        {
-            selected_object = 0;
-        }
-        else if (selected_object >= static_cast<int>(objects.size()) || selected_object < 0)
-        {
-            while (selected_object < 0)
-            {
-                selected_object += objects.size();
-            }
-            selected_object %= objects.size();
-        }
-
-        if (meshes.size() == 0)
-        {
-            selected_mesh = 0;
-        }
-        else if (selected_mesh >= static_cast<int>(meshes.size()) || selected_mesh < 0)
-        {
-            while (selected_mesh < 0)
-            {
-                selected_mesh += meshes.size();
-            }
-            selected_mesh %= meshes.size();
-        }
-
         if (objects.size() != 0)
         {
             auto& object = objects[selected_object];
 
-            if (update_mesh)
-            {
-                object.vertices = meshes[selected_mesh].vertices.data();
-                object.vertex_count = meshes[selected_mesh].vertices.size();
-                object.render_id = meshes[selected_mesh].render_id;
-                update_mesh = false;
-            }
+            // Set the object mesh to the selected mesh
+            object.vertices = meshes[selected_mesh].vertices.data();
+            object.vertex_count = meshes[selected_mesh].vertices.size();
+            object.render_id = meshes[selected_mesh].render_id;
 
             bool shift_pressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
 
@@ -374,11 +351,8 @@ int main()
                 angular_velocity = global_orientation.transpose() * angular_velocity;
                 object.orientation = Mat3::AxisAngle(last_frame_time * angular_velocity) * object.orientation;
             }
-        }
 
-        if (objects.size())
-        {
-            objects[selected_object].colliding = false;
+            object.colliding = false;
         }
 
         // Check for collisions with the selected object
