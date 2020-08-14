@@ -36,8 +36,99 @@ struct Mesh
     {}
 };
 
-struct IOData
+struct InputCommands
 {
+    void handle_commands(RenderContext& render_ctxt, std::vector<Mesh>& meshes, int& currently_selected_mesh)
+    {
+        // Handle input from the input thread
+        if (load_mesh)
+        {
+            std::vector<Vec3> vertices;
+            std::vector<Vec3> triangles;
+            std::vector<Vec3> normals;
+
+            // Check if the filename is a directory
+            fs::path path(mesh_filename);
+            if (fs::is_directory(path))
+            {
+                std::cout << "Loading meshes in directory " << path << ":\n";
+
+                for (const auto& p : fs::directory_iterator(path))
+                {
+                    demo::mesh::load_off(p.path().c_str(), vertices, triangles, normals);
+                    if (vertices.size() && triangles.size() && normals.size())
+                    {
+                        meshes.emplace_back(
+                            render_ctxt.load_object(
+                                triangles.data(),
+                                normals.data(),
+                                triangles.size()),
+                            p.path());
+                        meshes.back().vertices = std::move(vertices);
+                        std::cout << "Loaded mesh " << p.path() << ".\n";
+                    }
+                    else
+                    {
+                        std::cerr << "Unable to load mesh " << p.path() << ".\n";
+                    }
+                }
+            }
+            else
+            {
+                demo::mesh::load_off(path.c_str(), vertices, triangles, normals);
+                if (vertices.size() && triangles.size() && normals.size())
+                {
+                    meshes.emplace_back(
+                        render_ctxt.load_object(
+                            triangles.data(),
+                            normals.data(),
+                            triangles.size()),
+                        path);
+                    meshes.back().vertices = std::move(vertices);
+                    std::cout << "Loaded mesh " << path << ".\n";
+                }
+                else
+                {
+                    std::cerr << "Unable to load mesh: " << path << ".\n";
+                }
+            }
+
+            std::scoped_lock lock(mutex);
+            load_mesh = false;
+            cv.notify_one();
+        }
+        if (list_mesh)
+        {
+            std::scoped_lock lock(mutex);
+
+            std::cout << "Mesh ID   Number of Vertices   Filename\n";
+            for (std::size_t i = 0; i < meshes.size(); ++i)
+            {
+                std::cout << std::left << std::setw(10) << i << std::setw(21) << meshes[i].vertices.size() << meshes[i].filename << "\n";
+            }
+
+            list_mesh = false;
+            cv.notify_one();
+        }
+        if (select_mesh)
+        {
+            std::scoped_lock lock(mutex);
+
+            if (selected_mesh < meshes.size())
+            {
+                currently_selected_mesh = selected_mesh;
+                std::cout << "Mesh " << selected_mesh << " selected.\n";
+            }
+            else
+            {
+                std::cout << "Error: This mesh does not exist.\n";
+            }
+
+            select_mesh = false;
+            cv.notify_one();
+        }
+    }
+
     std::atomic_bool load_mesh = false;
     std::string mesh_filename;
 
@@ -52,8 +143,9 @@ struct IOData
     std::condition_variable cv;
 };
 
-void input_thread_func(IOData& io_data)
+void input_thread_func(InputCommands& io_data)
 {
+    // Wait for the previous command to finish
     {
         std::unique_lock lock(io_data.mutex);
         while ((io_data.load_mesh || io_data.list_mesh || io_data.select_mesh) && !io_data.quit)
@@ -139,7 +231,7 @@ int main()
     std::vector<Mesh> meshes;
     int selected_mesh = 0;
 
-    IOData io_data;
+    InputCommands io_data;
 
     io_data.mesh_filename = "demo_meshes";
     io_data.load_mesh = true;
@@ -153,12 +245,6 @@ int main()
 
     std::vector<ConvexHullInstance> objects;
     int selected_object = 0;
-
-    // Measure time from the start of the frame
-    glfwSetTime(0.0);
-
-    double min_frame_time = 1.0 / 60.0;
-    double last_frame_time = 0.0f;
 
     KbInputHandler kb(window);
 
@@ -207,149 +293,66 @@ int main()
         }
     });
 
+    double min_frame_time = 1.0 / 60.0;
+    double last_frame_time = 0.0f;
+
+    // Measure time from the start of the frame
+    glfwSetTime(0.0);
+
     while (!glfwWindowShouldClose(window) && !io_data.quit)
     {
-        // Handle input from the input thread
-        if (io_data.load_mesh)
+        io_data.handle_commands(render_ctxt, meshes, selected_mesh);
+
+        kb.do_actions();
+
+        // Wrap selected_object and selected_mesh
+        if (objects.size() == 0)
         {
-            std::vector<Vec3> vertices;
-            std::vector<Vec3> triangles;
-            std::vector<Vec3> normals;
-
-            // Check if the filename is a directory
-            fs::path path(io_data.mesh_filename);
-            if (fs::is_directory(path))
-            {
-                std::cout << "Loading meshes in directory " << path << ":\n";
-
-                for (const auto& p : fs::directory_iterator(path))
-                {
-                    demo::mesh::load_off(p.path().c_str(), vertices, triangles, normals);
-                    if (vertices.size() && triangles.size() && normals.size())
-                    {
-                        meshes.emplace_back(
-                            render_ctxt.load_object(
-                                triangles.data(),
-                                normals.data(),
-                                triangles.size()),
-                            p.path());
-                        meshes.back().vertices = std::move(vertices);
-                        std::cout << "Loaded mesh " << p.path() << ".\n";
-                    }
-                    else
-                    {
-                        std::cerr << "Unable to load mesh " << p.path() << ".\n";
-                    }
-                }
-            }
-            else
-            {
-                demo::mesh::load_off(path.c_str(), vertices, triangles, normals);
-                if (vertices.size() && triangles.size() && normals.size())
-                {
-                    meshes.emplace_back(
-                        render_ctxt.load_object(
-                            triangles.data(),
-                            normals.data(),
-                            triangles.size()),
-                        path);
-                    meshes.back().vertices = std::move(vertices);
-                    std::cout << "Loaded mesh " << path << ".\n";
-                }
-                else
-                {
-                    std::cerr << "Unable to load mesh: " << path << ".\n";
-                }
-            }
-
-            std::scoped_lock lock(io_data.mutex);
-            io_data.load_mesh = false;
-            io_data.cv.notify_one();
+            selected_object = 0;
         }
-        if (io_data.list_mesh)
+        else if (selected_object >= static_cast<int>(objects.size()) || selected_object < 0)
         {
-            std::scoped_lock lock(io_data.mutex);
-
-            std::cout << "Mesh ID   Number of Vertices   Filename\n";
-            for (std::size_t i = 0; i < meshes.size(); ++i)
+            while (selected_object < 0)
             {
-                std::cout << std::left << std::setw(10) << i << std::setw(21) << meshes[i].vertices.size() << meshes[i].filename << "\n";
+                selected_object += objects.size();
             }
-
-            io_data.list_mesh = false;
-            io_data.cv.notify_one();
-        }
-        if (io_data.select_mesh)
-        {
-            std::scoped_lock lock(io_data.mutex);
-
-            if (io_data.selected_mesh < meshes.size())
-            {
-                selected_mesh = io_data.selected_mesh;
-                std::cout << "Mesh " << selected_mesh << " selected.\n";
-            }
-            else
-            {
-                std::cout << "Error: This mesh does not exist.\n";
-            }
-
-            io_data.select_mesh = false;
-            io_data.cv.notify_one();
+            selected_object %= objects.size();
         }
 
-        // Handle keyboard input
+        if (meshes.size() == 0)
         {
-            kb.do_actions();
+            selected_mesh = 0;
+        }
+        else if (selected_mesh >= static_cast<int>(meshes.size()) || selected_mesh < 0)
+        {
+            while (selected_mesh < 0)
+            {
+                selected_mesh += meshes.size();
+            }
+            selected_mesh %= meshes.size();
+        }
 
-            // Wrap selected_object and selected_mesh
-            if (objects.size() == 0)
-            {
-                selected_object = 0;
-            }
-            else if (selected_object >= static_cast<int>(objects.size()) || selected_object < 0)
-            {
-                while (selected_object < 0)
-                {
-                    selected_object += objects.size();
-                }
-                selected_object %= objects.size();
-            }
+        if (objects.size() != 0)
+        {
+            auto& object = objects[selected_object];
 
-            if (meshes.size() == 0)
+            if (update_mesh)
             {
-                selected_mesh = 0;
-            }
-            else if (selected_mesh >= static_cast<int>(meshes.size()) || selected_mesh < 0)
-            {
-                while (selected_mesh < 0)
-                {
-                    selected_mesh += meshes.size();
-                }
-                selected_mesh %= meshes.size();
+                object.vertices = meshes[selected_mesh].vertices.data();
+                object.vertex_count = meshes[selected_mesh].vertices.size();
+                object.render_id = meshes[selected_mesh].render_id;
+                update_mesh = false;
             }
 
-            if (objects.size() != 0)
-            {
-                auto& object = objects[selected_object];
+            float speed = 1.0f; // metres per second
+            Vec3 velocity_vector = speed * kb.get_wasdqe_vector();
+            object.position += last_frame_time * velocity_vector;
 
-                if (update_mesh)
-                {
-                    object.vertices = meshes[selected_mesh].vertices.data();
-                    object.vertex_count = meshes[selected_mesh].vertices.size();
-                    object.render_id = meshes[selected_mesh].render_id;
-                    update_mesh = false;
-                }
+            float angular_speed = 1.0f; // radians per second
+            Vec3 angular_velocity = angular_speed * kb.get_ijkluo_vector();
+            angular_velocity = Vec3(angular_velocity.z, angular_velocity.x, -angular_velocity.y);
 
-                float speed = 1.0f; // metres per second
-                Vec3 velocity_vector = speed * kb.get_wasdqe_vector();
-                object.position += last_frame_time * velocity_vector;
-
-                float angular_speed = 1.0f; // radians per second
-                Vec3 angular_velocity = angular_speed * kb.get_ijkluo_vector();
-                angular_velocity = Vec3(angular_velocity.z, angular_velocity.x, -angular_velocity.y);
-
-                object.orientation = Mat3::AxisAngle(last_frame_time * angular_velocity) * object.orientation;
-            }
+            object.orientation = Mat3::AxisAngle(last_frame_time * angular_velocity) * object.orientation;
         }
 
         if (objects.size())
