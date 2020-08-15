@@ -22,6 +22,9 @@ add_executable(test_math app/test_math.cpp app/math.cpp)
 add_executable(test_load_mesh app/test_load_mesh.cpp app/load_mesh.cpp app/math.cpp app/mesh_tools.cpp)
 add_executable(test_gjk app/test_gjk.cpp app/math.cpp)
 
+# Installation
+install(TARGETS demo DESTINATION bin)
+
 # Copy demo_meshes folder into the demo target directory
 add_custom_command(TARGET demo POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
