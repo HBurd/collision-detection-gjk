@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Get the directory in which the demo script is stored.
+demo_dir=$(dirname "$0") || exit 1
+
+# Run the demo program passing the demo_meshes folder.
+$demo_dir/demo_program/demo demo_meshes

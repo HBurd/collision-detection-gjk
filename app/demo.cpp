@@ -239,16 +239,25 @@ int modulo(int a, unsigned int b)
     return 0;
 }
 
-int main()
+int main(int argc, char** args)
 {
     std::vector<Mesh> meshes;
     int selected_mesh = 0;
 
     InputCommands io_data;
 
-    // Issue a command to load the demo_meshes folder
-    io_data.mesh_filename = "demo_meshes";
-    io_data.load_mesh = true;
+    // Handle command line arguments
+    if (argc == 2)
+    {
+        // The user supplied a file or directory to load
+        io_data.mesh_filename = args[1];
+        io_data.load_mesh = true;
+    }
+    else if (argc > 2)
+    {
+        // This is not valid usage
+        std::cerr << "usage: demo [directory_to_load]\n";
+    }
 
     std::thread input_thread(input_thread_func, std::ref(io_data));
 
