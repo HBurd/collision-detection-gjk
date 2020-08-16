@@ -365,29 +365,29 @@ int main(int argc, char** args)
                 angular_velocity = global_orientation.transpose() * angular_velocity;
                 object.orientation = Mat3::AxisAngle(last_frame_time * angular_velocity) * object.orientation;
             }
+        }
 
+        // Forget previous intersections
+        for (auto& object : objects)
+        {
             object.colliding = false;
         }
 
-        // Check for collisions with the selected object
-        for (int i = 0; i < static_cast<int>(objects.size()); ++i)
+        // Check for intersections between every pair of objects.
+        for (int i = 0; i < static_cast<int>(objects.size() - 1); ++i)
         {
-            if (i != selected_object)
+            // Start at 1 past i so that each intersection is only checked
+            // once, and never with itself.
+            for (int j = i + 1; j < static_cast<int>(objects.size()); ++j)
             {
-                auto& object = objects[i];
                 geometry::GjkStats stats;
-                if (geometry::intersect_gjk<Vec3>(
-                    [&object](const Vec3& d) { return general_support(d, object); },
-                    [&obj = objects[selected_object]](const Vec3& d) { return general_support(d, obj); },
-                    100, &stats))
-                {
-                    object.colliding = true;
-                    objects[selected_object].colliding = true;
-                }
-                else
-                {
-                    object.colliding = false;
-                }
+                bool intersection = geometry::intersect_gjk<Vec3>(
+                    [&objects, i](const Vec3& d) { return general_support(d, objects[i]); },
+                    [&objects, j](const Vec3& d) { return general_support(d, objects[j]); },
+                    100, &stats);
+
+                objects[i].colliding |= intersection;
+                objects[j].colliding |= intersection;
 
                 if (stats.iteration_count == 100)
                 {
