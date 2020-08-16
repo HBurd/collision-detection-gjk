@@ -226,8 +226,8 @@ void input_thread_func(InputCommands& io_data)
     }
 }
 
-// Returns the unique representative of the a mod b equivalence class in the range [0, b).
-// or returns zero if b is zero
+// Returns the unique representative of the a mod b equivalence class in the range [0, b),
+// or returns zero if b is zero.
 int modulo(int a, unsigned int b)
 {
     // % Returns remainder, so it has to be made positive for when a is negative.
@@ -277,25 +277,33 @@ int main(int argc, char** args)
     InputHandler input(window);
 
     // Register the events for the arrow keys (which only trigger as they are pressed).
-    input.register_action(GLFW_KEY_LEFT, true, [&selected_object, &objects, &selected_mesh, &meshes, &input] {
+    input.register_action(GLFW_KEY_LEFT, true, [&selected_object, &objects, &meshes, &selected_mesh, &input] {
         if (input.get_shift())
         {
             selected_mesh = modulo(selected_mesh - 1, meshes.size());
         }
         else
         {
-            selected_object = modulo(selected_object - 1, objects.size());
+            if (objects.size())
+            {
+                selected_object = modulo(selected_object - 1, objects.size());
+                selected_mesh = objects[selected_object].mesh_id;
+            }
         }
     });
 
-    input.register_action(GLFW_KEY_RIGHT, true, [&selected_object, &objects, &selected_mesh, &meshes, &input] {
+    input.register_action(GLFW_KEY_RIGHT, true, [&selected_object, &objects, &meshes, &selected_mesh, &input] {
         if (input.get_shift())
         {
             selected_mesh = modulo(selected_mesh + 1, meshes.size());
         }
         else
         {
-            selected_object = modulo(selected_object + 1, objects.size());
+            if (objects.size())
+            {
+                selected_object = modulo(selected_object + 1, objects.size());
+                selected_mesh = objects[selected_object].mesh_id;
+            }
         }
     });
 
@@ -303,11 +311,10 @@ int main(int argc, char** args)
         // Only add an object if a mesh has been loaded
         if (meshes.size() != 0)
         {
+            // Select the new object when it is created.
             selected_object = objects.size();
 
-            const auto& vertices = meshes[selected_mesh].vertices;
-
-            objects.emplace_back(Vec3(), Mat3::Identity(), vertices.data(), vertices.size(), meshes[selected_mesh].render_id);
+            objects.emplace_back(Vec3(), Mat3::Identity(), selected_mesh);
         }
     });
 
@@ -336,10 +343,7 @@ int main(int argc, char** args)
         {
             auto& object = objects[selected_object];
 
-            // Set the object mesh to the selected mesh
-            object.vertices = meshes[selected_mesh].vertices.data();
-            object.vertex_count = meshes[selected_mesh].vertices.size();
-            object.render_id = meshes[selected_mesh].render_id;
+            object.mesh_id = selected_mesh;
 
             bool shift_pressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
 
@@ -382,8 +386,8 @@ int main(int argc, char** args)
             {
                 geometry::GjkStats stats;
                 bool intersection = geometry::intersect_gjk<Vec3>(
-                    [&objects, i](const Vec3& d) { return general_support(d, objects[i]); },
-                    [&objects, j](const Vec3& d) { return general_support(d, objects[j]); },
+                    [&objects, &meshes, i](const Vec3& d) { return general_support(d, objects[i], meshes[objects[i].mesh_id].vertices); },
+                    [&objects, &meshes, j](const Vec3& d) { return general_support(d, objects[j], meshes[objects[j].mesh_id].vertices); },
                     100, &stats);
 
                 objects[i].colliding |= intersection;
@@ -401,7 +405,7 @@ int main(int argc, char** args)
         for (int i = 0; i < static_cast<int>(objects.size()); ++i)
         {
             const auto& object = objects[i];
-            render_ctxt.draw_object(object.render_id, object.position, object.orientation.m[0], i == selected_object, object.colliding, global_position, global_orientation.m[0]);
+            render_ctxt.draw_object(meshes[object.mesh_id].render_id, object.position, object.orientation.m[0], i == selected_object, object.colliding, global_position, global_orientation.m[0]);
         }
 
         glfwSwapBuffers(window);

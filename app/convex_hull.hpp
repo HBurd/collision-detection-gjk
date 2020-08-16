@@ -2,6 +2,7 @@
 #define CONVEX_HULL_HPP
 
 #include "math.hpp"
+#include <vector>
 
 struct ConvexHullInstance
 {
@@ -10,18 +11,12 @@ struct ConvexHullInstance
 
     bool colliding = false;
 
-    // A reference to a Mesh is not being used here because the meshes
-    // exist in a vector so do not have stable references. The actual
-    // vertex data does have a stable reference since it is never modified.
-    // This also has the benefit of avoiding a double inderection (i.e.
-    // the vertices don't have to be accessed through a Mesh reference).
-    const demo::math::Vec3* vertices;
-    std::size_t vertex_count;
-    std::size_t render_id;
+    // Index of the mesh associated with this object
+    int mesh_id;
 
-    ConvexHullInstance(demo::math::Vec3 pos, demo::math::Mat3 orient, const demo::math::Vec3* vertices_, std::size_t vertex_count_, std::size_t render_id_);
+    ConvexHullInstance(demo::math::Vec3 pos, demo::math::Mat3 orient, int mesh_id_);
 };
 
-demo::math::Vec3 general_support(demo::math::Vec3 dir, const ConvexHullInstance& data);
+demo::math::Vec3 general_support(demo::math::Vec3 dir, const ConvexHullInstance& data, const std::vector<demo::math::Vec3>& vertices);
 
 #endif
