@@ -233,7 +233,7 @@ int modulo(int a, unsigned int b)
     // % Returns remainder, so it has to be made positive for when a is negative.
     if (b)
     {
-        return (a % b + b) % b;
+        return (a % static_cast<int>(b) + b) % static_cast<int>(b);
     }
     
     return 0;
@@ -324,6 +324,10 @@ int main(int argc, char** args)
             // Remove the selected object, and replace it with the object at the back.
             objects[selected_object] = objects.back();
             objects.pop_back();
+
+            // selected_mesh might now be invalidated, if the object at the back was removed.
+            // So it needs to be set to a valid index.
+            selected_object = 0;
         }
     });
 
