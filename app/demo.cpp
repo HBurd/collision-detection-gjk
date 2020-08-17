@@ -318,7 +318,7 @@ int main(int argc, char** args)
         }
     });
 
-    input.register_action(GLFW_KEY_DOWN, true, [&objects, &selected_object] {
+    input.register_action(GLFW_KEY_DOWN, true, [&objects, &selected_object, &selected_mesh] {
         if (objects.size())
         {
             // Remove the selected object, and replace it with the object at the back.
@@ -328,6 +328,7 @@ int main(int argc, char** args)
             // selected_mesh might now be invalidated, if the object at the back was removed.
             // So it needs to be set to a valid index.
             selected_object = 0;
+            selected_mesh = objects[selected_object].mesh_id;
         }
     });
 
