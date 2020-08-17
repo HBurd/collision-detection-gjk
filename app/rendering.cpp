@@ -37,9 +37,9 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
     // Vertex shader description:
     // Computes camera-relative normals and perspective-transformed vertex coordinates
     const char* vshader_string =
-        "#version 330 core\n"
-        "layout (location = 0) in vec3 vpos;\n"
-        "layout (location = 1) in vec3 normal;\n"
+        "#version 140\n"
+        "in vec3 vpos;\n"
+        "in vec3 normal;\n"
         "uniform mat4 perspective;\n"
         "uniform mat3 orientation;\n"
         "uniform vec3 position;\n"
@@ -57,7 +57,7 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
     // Draws colour based on colour mask.
     // Faces directly facing the camera are drawn brighter than those that are barely facing the camera.
     const char* fshader_string =
-        "#version 330 core\n"
+        "#version 140\n"
         "uniform vec3 colour_mask;\n"
         "in vec3 camera_relative_normal;\n"
         "in vec3 camera_relative_position;\n"
