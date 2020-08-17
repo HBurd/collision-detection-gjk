@@ -33,7 +33,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/demo_meshes DESTINATION bin)
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/demo DESTINATION bin)
 
 # Link with GLFW, OpenGL, GLEW
-find_package(glfw3 3.3 REQUIRED)
+find_package(glfw3 3.2 REQUIRED)
 target_link_libraries(demo glfw)
 find_package(OpenGL REQUIRED)
 target_link_libraries(demo OpenGL::GL)
