@@ -263,7 +263,6 @@ int main(int argc, char** args)
 
     RenderContext render_ctxt(800, 600, "SENG 475 Project Demo");
 
-    // TODO: The abstraction shouldn't deal with GLFW
     GLFWwindow* window = render_ctxt.get_glfw_window();
 
     std::vector<ConvexHullInstance> objects;

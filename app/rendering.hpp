@@ -22,6 +22,7 @@ namespace demo::rendering {
 
         void draw_object(std::size_t object_id, const demo::math::Vec3& position, const float* orientation, bool selected, bool colliding, const demo::math::Vec3& global_position, const float* global_orientation);
 
+        // The glfw window is needed for event handling
         GLFWwindow* get_glfw_window();
 
     private:
@@ -33,6 +34,8 @@ namespace demo::rendering {
 
             ShaderProgram() = default;
 
+            // ShaderProgram constructor takes the strings of a vertex and fragment shader, and compiles and links them
+            // into a shader program.
             ShaderProgram(const char* vshader_string, const char* fshader_string);
         };
 
@@ -61,6 +64,7 @@ namespace demo::rendering {
     // Returns program object handle
     GLuint link_shader_program(GLuint vshader, GLuint fshader);
 
+    // This returns a perspective matrix in data (row-major, 4x4)
     void make_perspective_matrix(float* data, float near, float far, float fov, float aspect_ratio);
 }
 

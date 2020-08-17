@@ -23,13 +23,19 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
+    // Initialize GLEW
     glewExperimental = true;
     assert(glewInit() == GLEW_OK);
 
+    // Enable depth testing
     glEnable(GL_DEPTH_TEST);
+
+    // Only show the front of faces
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
+    // Vertex shader description:
+    // Computes camera-relative normals and perspective-transformed vertex coordinates
     const char* vshader_string =
         "#version 330 core\n"
         "layout (location = 0) in vec3 vpos;\n"
@@ -46,6 +52,10 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
         "    camera_relative_position = global_position + global_orientation * (position + orientation * vpos);\n"
         "    gl_Position = perspective * vec4(camera_relative_position, 1.0f);\n"
         "}\n";
+
+    // Fragment shader description:
+    // Draws colour based on colour mask.
+    // Faces directly facing the camera are drawn brighter than those that are barely facing the camera.
     const char* fshader_string =
         "#version 330 core\n"
         "uniform vec3 colour_mask;\n"
@@ -58,9 +68,10 @@ RenderContext::RenderContext(unsigned int w, unsigned int h, const char* title)
         "    colour = vec4(intensity * colour_mask, 1.0f);\n"
         "}\n";
 
+    // Compile and link the shader program
     shader_program = ShaderProgram(vshader_string, fshader_string);
 
-    // TODO: adjustable near/far/fov
+    // Make a perspective matrix with near plane at 0.1f, far at 100.0f, FOV of 1 rad (57 deg).
     make_perspective_matrix(perspective_matrix, 0.1f, 100.0f, 1.0f, float(width) / float(height));
 }
 
@@ -94,6 +105,7 @@ std::size_t RenderContext::load_object(const Vec3* positions, const Vec3* normal
     glEnableVertexAttribArray(1);   // Location for normal in shader program
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), 0);
 
+    // Keep track of the newly created object.
     std::size_t object_id = objects.size();
     objects.emplace_back();
 
@@ -107,47 +119,62 @@ std::size_t RenderContext::load_object(const Vec3* positions, const Vec3* normal
 
 void RenderContext::draw_object(std::size_t object_id, const Vec3& position, const float* orientation, bool selected, bool colliding, const Vec3& global_position, const float* global_orientation)
 {
+    // Make sure the shader is bound
     glUseProgram(shader_program.program);
 
     const RenderObject& object = objects[object_id];
 
     glBindVertexArray(object.vao);
 
+    // Pass the perspective matrix to the shader
     GLint location = glGetUniformLocation(shader_program.program, "perspective");
     glUniformMatrix4fv(location, 1, GL_TRUE, perspective_matrix);
 
+    // Pass the object orientation matrix to the shader
     location = glGetUniformLocation(shader_program.program, "orientation");
     glUniformMatrix3fv(location, 1, GL_TRUE, orientation);
 
+    // Pass the object position vector to the shader
     location = glGetUniformLocation(shader_program.program, "position");
     glUniform3f(location, position.x, position.y, position.z);
     
+    // Pass the colour mask to the shader (which determines the object colour).
     location = glGetUniformLocation(shader_program.program, "colour_mask");
+
+    // Base colour is grey (xyz = rgb)
     Vec3 colour_mask(0.5f, 0.5f, 0.5f);
     if (selected)
     {
+        // Selected objects have a blue component
         colour_mask.z = 1.0f;
     }
     if (colliding)
     {
+        // Intersecting objects have a stronger red component
         colour_mask.x = 1.0f;
     }
     glUniform3f(location, colour_mask.x, colour_mask.y, colour_mask.z);
 
+    // Pass global position to the shader
     location = glGetUniformLocation(shader_program.program, "global_position");
     glUniform3f(location, global_position.x, global_position.y, global_position.z);
 
+    // Pass global orientation to the shader
     location = glGetUniformLocation(shader_program.program, "global_orientation");
     glUniformMatrix3fv(location, 1, GL_TRUE, global_orientation);
 
+    // Draw the object
     glDrawArrays(GL_TRIANGLES, 0, object.num_vertices);
 }
 
+// The GLFW window is needed for event handling
 GLFWwindow* RenderContext::get_glfw_window()
 {
     return window;
 }
 
+// ShaderProgram constructor takes the strings of a vertex and fragment shader, and compiles and links them
+// into a shader program.
 RenderContext::ShaderProgram::ShaderProgram(const char* vshader_string, const char* fshader_string)
 {
     vertex_shader = compile_shader(vshader_string, GL_VERTEX_SHADER);
@@ -158,10 +185,16 @@ RenderContext::ShaderProgram::ShaderProgram(const char* vshader_string, const ch
 // Returns shader object handle
 GLuint compile_shader(const char* source, GLenum shader_type)
 {
+    // Create the shader object
     GLuint shader = glCreateShader(shader_type);
+
+    // Pass the shader string to the shader object
     glShaderSource(shader, 1, &source, nullptr);
+
+    //Compile the shader
     glCompileShader(shader);
 
+    // Check if there was an error and if so, show the error message
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (success == GL_FALSE)
@@ -180,11 +213,17 @@ GLuint compile_shader(const char* source, GLenum shader_type)
 // Returns program object handle
 GLuint link_shader_program(GLuint vshader, GLuint fshader)
 {
+    // Create the shader program object
     GLuint program = glCreateProgram();
+
+    // Attach the two compiled shaders to the program
     glAttachShader(program, vshader);
     glAttachShader(program, fshader);
+
+    // Link the program
     glLinkProgram(program);
 
+    // Check if there was an error and if so, show the error message
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (success == GL_FALSE)
@@ -201,6 +240,7 @@ GLuint link_shader_program(GLuint vshader, GLuint fshader)
     return program;
 }
 
+// This returns a perspective matrix in data (row-major, 4x4)
 void make_perspective_matrix(float* data, float near, float far, float fov, float aspect_ratio)
 {
     float csc_fov = 1.0f / sinf(fov * 0.5f);

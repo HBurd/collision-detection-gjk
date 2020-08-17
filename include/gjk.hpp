@@ -151,50 +151,6 @@ namespace geometry
                 d = -triangle_normal;
             }
         }
-
-
-        /*
-        if (f_plane * d_plane < Real(0))
-        {
-            // Origin is in region D or F
-            simplex_size = 2;
-
-            if (f_plane < Real(0))
-            {
-                // Origin is in region F
-                // We can discard simplex[1]
-                simplex[1] = simplex[2];
-                simplex1_dir(simplex, d);
-            }
-            else
-            {
-                // Origin is in region D
-                // We can discard simplex[0]
-                simplex[0] = simplex[2];
-                simplex1_dir(simplex, d);
-            }
-        }
-        else
-        {
-            // Origin is in region G or H
-            simplex_size = 3;
-
-            if (dot(triangle_normal, simplex[0]) < Real(0))
-            {
-                // Origin is above the triangle
-                d = triangle_normal;
-
-                // Make the search direction opposite the triangle normal,
-                // so the 4-simplex is always consistently constructed.
-                std::swap(simplex[1], simplex[2]);
-            }
-            else
-            {
-                // Origin is below triangle
-                d = -triangle_normal;
-            }
-        }
-        */
     }
 
     template <class Vec3>
@@ -364,7 +320,6 @@ namespace geometry
         return false;
     }
 
-    // TODO: are we treating resting contact as an intersection?
     template <class Vec3>
     bool intersect_gjk(
         std::function<Vec3(const Vec3&)> support1,
@@ -375,7 +330,7 @@ namespace geometry
         using Real = decltype(Vec3::x);
 
         // Starting direction is arbitrary
-        Vec3 d = Vec3(1.0f, 0.0f, 0.0f);
+        Vec3 d = Vec3(1.0, 0.0, 0.0);
 
         Vec3 simplex_points[4] = {};
         std::size_t simplex_size = 0;
